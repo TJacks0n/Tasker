@@ -1,0 +1,546 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		E27EDD112DBAC452009F42B5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E27EDCFA2DBAC451009F42B5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E27EDD012DBAC451009F42B5;
+			remoteInfo = Tasker;
+		};
+		E27EDD1B2DBAC452009F42B5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E27EDCFA2DBAC451009F42B5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E27EDD012DBAC451009F42B5;
+			remoteInfo = Tasker;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E27EDD022DBAC451009F42B5 /* Tasker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tasker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E27EDD102DBAC452009F42B5 /* TaskerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E27EDD1A2DBAC452009F42B5 /* TaskerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E27EDD042DBAC451009F42B5 /* Tasker */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tasker;
+			sourceTree = "<group>";
+		};
+		E27EDD132DBAC452009F42B5 /* TaskerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TaskerTests;
+			sourceTree = "<group>";
+		};
+		E27EDD1D2DBAC452009F42B5 /* TaskerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TaskerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E27EDCFF2DBAC451009F42B5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD0D2DBAC452009F42B5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD172DBAC452009F42B5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E27EDCF92DBAC451009F42B5 = {
+			isa = PBXGroup;
+			children = (
+				E27EDD042DBAC451009F42B5 /* Tasker */,
+				E27EDD132DBAC452009F42B5 /* TaskerTests */,
+				E27EDD1D2DBAC452009F42B5 /* TaskerUITests */,
+				E27EDD032DBAC451009F42B5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E27EDD032DBAC451009F42B5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E27EDD022DBAC451009F42B5 /* Tasker.app */,
+				E27EDD102DBAC452009F42B5 /* TaskerTests.xctest */,
+				E27EDD1A2DBAC452009F42B5 /* TaskerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E27EDD012DBAC451009F42B5 /* Tasker */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E27EDD242DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "Tasker" */;
+			buildPhases = (
+				E27EDCFE2DBAC451009F42B5 /* Sources */,
+				E27EDCFF2DBAC451009F42B5 /* Frameworks */,
+				E27EDD002DBAC451009F42B5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E27EDD042DBAC451009F42B5 /* Tasker */,
+			);
+			name = Tasker;
+			packageProductDependencies = (
+			);
+			productName = Tasker;
+			productReference = E27EDD022DBAC451009F42B5 /* Tasker.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E27EDD0F2DBAC452009F42B5 /* TaskerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E27EDD272DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "TaskerTests" */;
+			buildPhases = (
+				E27EDD0C2DBAC452009F42B5 /* Sources */,
+				E27EDD0D2DBAC452009F42B5 /* Frameworks */,
+				E27EDD0E2DBAC452009F42B5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E27EDD122DBAC452009F42B5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E27EDD132DBAC452009F42B5 /* TaskerTests */,
+			);
+			name = TaskerTests;
+			packageProductDependencies = (
+			);
+			productName = TaskerTests;
+			productReference = E27EDD102DBAC452009F42B5 /* TaskerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E27EDD192DBAC452009F42B5 /* TaskerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E27EDD2A2DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "TaskerUITests" */;
+			buildPhases = (
+				E27EDD162DBAC452009F42B5 /* Sources */,
+				E27EDD172DBAC452009F42B5 /* Frameworks */,
+				E27EDD182DBAC452009F42B5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E27EDD1C2DBAC452009F42B5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E27EDD1D2DBAC452009F42B5 /* TaskerUITests */,
+			);
+			name = TaskerUITests;
+			packageProductDependencies = (
+			);
+			productName = TaskerUITests;
+			productReference = E27EDD1A2DBAC452009F42B5 /* TaskerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E27EDCFA2DBAC451009F42B5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					E27EDD012DBAC451009F42B5 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					E27EDD0F2DBAC452009F42B5 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = E27EDD012DBAC451009F42B5;
+					};
+					E27EDD192DBAC452009F42B5 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = E27EDD012DBAC451009F42B5;
+					};
+				};
+			};
+			buildConfigurationList = E27EDCFD2DBAC451009F42B5 /* Build configuration list for PBXProject "Tasker" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E27EDCF92DBAC451009F42B5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E27EDD032DBAC451009F42B5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E27EDD012DBAC451009F42B5 /* Tasker */,
+				E27EDD0F2DBAC452009F42B5 /* TaskerTests */,
+				E27EDD192DBAC452009F42B5 /* TaskerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E27EDD002DBAC451009F42B5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD0E2DBAC452009F42B5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD182DBAC452009F42B5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E27EDCFE2DBAC451009F42B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD0C2DBAC452009F42B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27EDD162DBAC452009F42B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E27EDD122DBAC452009F42B5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E27EDD012DBAC451009F42B5 /* Tasker */;
+			targetProxy = E27EDD112DBAC452009F42B5 /* PBXContainerItemProxy */;
+		};
+		E27EDD1C2DBAC452009F42B5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E27EDD012DBAC451009F42B5 /* Tasker */;
+			targetProxy = E27EDD1B2DBAC452009F42B5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E27EDD222DBAC452009F42B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E27EDD232DBAC452009F42B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		E27EDD252DBAC452009F42B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tasker/Tasker.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.Tasker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E27EDD262DBAC452009F42B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tasker/Tasker.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.Tasker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		E27EDD282DBAC452009F42B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.TaskerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tasker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tasker";
+			};
+			name = Debug;
+		};
+		E27EDD292DBAC452009F42B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.TaskerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tasker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tasker";
+			};
+			name = Release;
+		};
+		E27EDD2B2DBAC452009F42B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.TaskerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Tasker;
+			};
+			name = Debug;
+		};
+		E27EDD2C2DBAC452009F42B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.TJacks0n.TaskerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Tasker;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E27EDCFD2DBAC451009F42B5 /* Build configuration list for PBXProject "Tasker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E27EDD222DBAC452009F42B5 /* Debug */,
+				E27EDD232DBAC452009F42B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E27EDD242DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "Tasker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E27EDD252DBAC452009F42B5 /* Debug */,
+				E27EDD262DBAC452009F42B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E27EDD272DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "TaskerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E27EDD282DBAC452009F42B5 /* Debug */,
+				E27EDD292DBAC452009F42B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E27EDD2A2DBAC452009F42B5 /* Build configuration list for PBXNativeTarget "TaskerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E27EDD2B2DBAC452009F42B5 /* Debug */,
+				E27EDD2C2DBAC452009F42B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E27EDCFA2DBAC451009F42B5 /* Project object */;
+}
