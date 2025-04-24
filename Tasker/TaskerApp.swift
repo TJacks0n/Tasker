@@ -8,10 +8,13 @@
 import SwiftUI
 
 @main
-struct TaskerApp: App {
+struct TaskMenuBarApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        // We don't want a visible window for a menu bar app
+        Settings {
+            EmptyView() // Or any other view that doesn't present a window
         }
     }
 }
