@@ -1,19 +1,20 @@
-//
-//  TaskListView.swift
-//  Tasker
-//
-//  Created by Thomas Jackson on 24/04/2025.
-//
+// In TaskListView.swift
 import SwiftUI
 import Combine
-import AppKit
+import AppKit // Needed for NSApplication
+import UniformTypeIdentifiers // <<< Import for UTIs
 
-struct Task: Identifiable, Equatable { // Add Equatable
+// Define a UTI for dragging tasks
+extension UTType {
+    static let taskItem = UTType(exportedAs: "com.github.TJacks0n.Tasker") // Replace with your identifier
+}
+
+// 1. Task Data Model ... (remains the same)
+struct Task: Identifiable, Equatable, Codable {
     let id = UUID()
     var title: String
     var isCompleted: Bool = false
 
-    // Add the Equatable requirement implementation
     static func == (lhs: Task, rhs: Task) -> Bool {
         return lhs.id == rhs.id &&
                lhs.title == rhs.title &&
@@ -21,142 +22,244 @@ struct Task: Identifiable, Equatable { // Add Equatable
     }
 }
 
+
+// 2. Task View Model ... (remains the same)
 class TaskViewModel: ObservableObject {
     @Published var tasks: [Task] = []
     @Published var newTaskTitle: String = ""
 
+    // --- Persistence (Optional: Add load/save logic if needed) ---
+    // init() { loadTasks() }
+    // func saveTasks() { /* ... */ }
+    // func loadTasks() { /* ... */ }
+    // --- End Persistence ---
+
     func addTask() {
-        guard !newTaskTitle.isEmpty else {
-            print("Task title is empty. Task not added.")
-            return
-        }
+        guard !newTaskTitle.isEmpty else { return }
         let newTask = Task(title: newTaskTitle)
-        // Use a spring animation
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.append(newTask)
         }
-        print("Task added: \(newTask.title)")
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { // Clear title after adding
             self.newTaskTitle = ""
         }
-        schedulePopoverSizeUpdate()
+        // saveTasks() // Optional: Save after adding
     }
-    
-    // Add this method inside TaskViewModel class
+
     func deleteTask(task: Task) {
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.id == task.id }
         }
-        schedulePopoverSizeUpdate()
+        // saveTasks() // Optional: Save after deleting
     }
 
     func toggleTaskCompletion(task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            // Use a spring animation
             withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
                 tasks[index].isCompleted.toggle()
             }
-            schedulePopoverSizeUpdate()
+            // saveTasks() // Optional: Save after toggling
         }
     }
 
     func removeCompletedTasks() {
-        // Use spring animation again
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.isCompleted }
         }
-        schedulePopoverSizeUpdate()
+        // saveTasks() // Optional: Save after removing completed
     }
 
     func clearList() {
-        // Remove the withAnimation block here
+        // No animation needed here if AppDelegate handles size animation
         tasks.removeAll()
-        // Rely on the popover size update animation
-        schedulePopoverSizeUpdate()
-    }
-    
-    private var appDelegate: AppDelegate? {
-        NSApplication.shared.delegate as? AppDelegate
+        // saveTasks() // Optional: Save after clearing
     }
 
-     func schedulePopoverSizeUpdate() {
-        DispatchQueue.main.async { [weak self] in
-            self?.updatePopoverSize()
+    // Function to handle moving tasks (used by onDrop)
+    func moveTask(sourceTaskID: UUID, destinationTaskID: UUID) {
+        guard let sourceIndex = tasks.firstIndex(where: { $0.id == sourceTaskID }),
+              let destinationIndex = tasks.firstIndex(where: { $0.id == destinationTaskID }) else {
+            print("Error: Could not find source or destination index for move.")
+            return
         }
+
+        // Don't move if source and destination are the same
+        if sourceIndex == destinationIndex { return }
+
+        // Perform the move
+        tasks.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex > sourceIndex ? destinationIndex + 1 : destinationIndex)
+        // saveTasks() // Optional: Save after moving
     }
-
-    func updatePopoverSize() {
-        guard let popover = appDelegate?.popover else { return }
-
-        let baseHeight: CGFloat = 70
-        let rowHeight: CGFloat = 30
-        let newHeight = baseHeight + CGFloat(tasks.count) * rowHeight + 20
-        let maxHeight: CGFloat = 700
-        let finalSize = NSSize(width: 300, height: min(newHeight, maxHeight))
-
-        // Animate the popover's size change by setting the property directly
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2 // Adjust duration as needed
-            context.allowsImplicitAnimation = true // This enables the animation
-            // Set the contentSize directly
-            popover.contentSize = finalSize
-        }, completionHandler: nil)
-    }
-
-    private var cancellables = Set<AnyCancellable>()
 }
 
+
+// 3. Main Task List View (UI Layout)
 struct TaskListView: View {
     @ObservedObject var viewModel: TaskViewModel
+    @State private var showingClearAlert = false
+    @State private var draggedTask: Task?
 
     var body: some View {
-        VStack {
-            TextField("Add New Task", text: $viewModel.newTaskTitle, onCommit: {
-                viewModel.addTask()
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.horizontal)
-            .padding(.top, 10)
+        VStack(alignment: .leading, spacing: 0) {
+            // --- Input Area ---
+            AddTaskView(viewModel: viewModel)
+                .padding(.horizontal)
+                .padding(.top, 10)
+                .padding(.bottom, 5)
 
-            Divider()
-                .padding(.vertical, 2)
+            Divider().padding(.horizontal)
 
-            // Use ScrollView for potentially long lists
-            ScrollView {
-                VStack(spacing: 10) {
-                    // Use TaskRowView in ForEach
-                    ForEach($viewModel.tasks) { $task in
-                        TaskRowView(task: $task, viewModel: viewModel)
-                    }
-                    // Apply animation to the container of rows
-                    .animation(.interpolatingSpring(stiffness: 170, damping: 15), value: viewModel.tasks)
-                }
-                .padding(.top, 5) // Add some padding above the list
-            }
-            .frame(maxHeight: .infinity, alignment: .top) // Allow ScrollView to take available space
+            // --- Spacer Above Task List ---
+            Spacer() // <<< Re-add Spacer here
 
+            // --- Task List Area ---
+            if viewModel.tasks.isEmpty {
+                 Text("No tasks yet!")
+                     .foregroundColor(.secondary)
+                     .padding()
+                     .frame(maxWidth: .infinity, alignment: .center)
+                     .frame(height: 60) // Match emptyStateHeight
+             } else {
+                 ScrollView {
+                     LazyVStack(spacing: 0) {
+                         ForEach($viewModel.tasks) { $task in
+                             TaskRowView(task: $task, viewModel: viewModel)
+                                 .padding(.bottom, 5)
+                                 .onDrag {
+                                     self.draggedTask = task
+                                     return NSItemProvider(item: task.id.uuidString as NSSecureCoding, typeIdentifier: UTType.taskItem.identifier)
+                                 }
+                                 .onDrop(of: [UTType.taskItem.identifier, UTType.plainText.identifier],
+                                         delegate: TaskDropDelegate(
+                                             item: task,
+                                             tasks: $viewModel.tasks,
+                                             draggedItem: $draggedTask,
+                                             viewModel: viewModel
+                                         ))
+                         }
+                     }
+                     .padding(.top, 5) // Match listTopPadding
+                 }
+                 .frame(maxHeight: .infinity) // <<< Re-add maxHeight modifier
+             }
 
+            // --- Spacer Below Task List ---
+            Spacer() // <<< Re-add Spacer here
+
+            // --- Footer Area ---
+            Divider().padding(.horizontal)
             HStack {
-                Button("Remove Completed") {
+                Button("Clear Completed") {
                     viewModel.removeCompletedTasks()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.secondary) // Keep secondary tint or change as needed
-                .padding(.leading)
+                .disabled(viewModel.tasks.filter { $0.isCompleted }.isEmpty)
 
                 Spacer()
 
-                Button("Clear List") {
-                    viewModel.clearList()
+                Button("Clear All") {
+                    showingClearAlert = true
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.accentColor)
-                .padding(.trailing)
+                .disabled(viewModel.tasks.isEmpty)
+                .foregroundColor(.red)
             }
-            .padding(.top, 5)
-             .padding(.bottom, 10)
-             .padding(.horizontal)
+            .padding(.vertical, 10) // Keep reduced vertical padding
+            .padding(.horizontal)
         }
-        .frame(width: 300) // Keep the overall frame
+        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 300) // Match desiredWidth
+        .alert("Clear All Tasks?", isPresented: $showingClearAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Clear All", role: .destructive) {
+                viewModel.clearList()
+            }
+        } message: {
+            Text("Are you sure you want to remove all tasks? This cannot be undone.")
+        }
     }
+}
+
+
+// 4. Add Task Input View ... (remains the same)
+struct AddTaskView: View {
+    @ObservedObject var viewModel: TaskViewModel
+    @FocusState private var isInputActive: Bool // To manage focus
+
+    var body: some View {
+        HStack {
+            TextField("Add a new task...", text: $viewModel.newTaskTitle)
+                .textFieldStyle(.plain) // Use plain style for seamless look
+                .focused($isInputActive) // Bind focus state
+                .onSubmit(addTask) // Add task on Enter/Return key
+
+            Button(action: addTask) {
+                Image(systemName: "plus.circle.fill")
+            }
+            .buttonStyle(PlainButtonStyle()) // Remove default button chrome
+            .disabled(viewModel.newTaskTitle.isEmpty) // Disable if text field is empty
+        }
+        .onAppear {
+             // Set focus to the text field when the view appears
+             // Delay might be needed depending on popover presentation timing
+             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                 isInputActive = true
+             }
+         }
+    }
+
+    private func addTask() {
+        viewModel.addTask()
+        // Keep focus after adding:
+        // isInputActive = true
+    }
+}
+
+
+// 5. Drop Delegate Helper Struct
+struct TaskDropDelegate: DropDelegate {
+    let item: Task // The item this delegate instance is associated with
+    @Binding var tasks: [Task]
+    @Binding var draggedItem: Task?
+    var viewModel: TaskViewModel // Reference to call moveTask
+
+    // Action when drop is performed
+    func performDrop(info: DropInfo) -> Bool {
+        guard let draggedItem = self.draggedItem else {
+            print("Drop failed: No dragged item found.")
+            return false
+        }
+
+        // Ensure we are not dropping onto itself
+        if draggedItem.id != item.id {
+            print("Moving task \(draggedItem.title) to position of \(item.title)")
+            viewModel.moveTask(sourceTaskID: draggedItem.id, destinationTaskID: item.id)
+        }
+
+        self.draggedItem = nil // Clear the dragged item state
+        return true
+    }
+
+    // Optional: Provide visual feedback during drag (e.g., insertion line)
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        // Indicate that this view can handle the drop operation (move)
+        return DropProposal(operation: .move)
+    }
+
+    // Optional: Validate if the drop is allowed here
+    func validateDrop(info: DropInfo) -> Bool {
+        // Ensure the dragged item is of the expected type
+        return info.hasItemsConforming(to: [.taskItem, .plainText])
+    }
+}
+
+
+// 6. Preview ... (remains the same)
+#Preview {
+    let previewViewModel = TaskViewModel()
+    previewViewModel.tasks = [
+        Task(title: "Sample Task 1", isCompleted: false),
+        Task(title: "Sample Task 2", isCompleted: true),
+        Task(title: "Sample Task 3", isCompleted: false)
+    ]
+    return TaskListView(viewModel: previewViewModel)
+        .frame(width: 300)
 }
