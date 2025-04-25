@@ -71,7 +71,7 @@ class TaskViewModel: ObservableObject {
         NSApplication.shared.delegate as? AppDelegate
     }
 
-    func schedulePopoverSizeUpdate() {
+     func schedulePopoverSizeUpdate() {
         DispatchQueue.main.async { [weak self] in
             self?.updatePopoverSize()
         }
@@ -120,15 +120,14 @@ struct TaskListView: View {
                             viewModel.toggleTaskCompletion(task: task)
                         }) {
                             ZStack { // Apply frame and content shape here
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(task.isCompleted ? Color.purple : Color.gray, lineWidth: 2)
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(task.isCompleted ? Color.accentColor : Color.secondary, lineWidth: 2)
                                 
-                                if task.isCompleted {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.purple)
-                                }
+                                // Fill with accent color if completed
+                                    .fill(task.isCompleted ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.2))
+                                
                             }
-                            .frame(width: 20, height: 20) // Set the size of the ZStack
+                            .frame(width: 12, height: 12) // Set the size of the ZStack
                             .contentShape(Rectangle()) // Make the whole area tappable
                         }
                         .buttonStyle(PlainButtonStyle()) // Keep default style minimal
@@ -148,11 +147,15 @@ struct TaskListView: View {
                 Button("Remove Completed") {
                     viewModel.removeCompletedTasks()
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.secondary)
                 .padding()
 
                 Button("Clear List") {
                     viewModel.clearList()
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.accentColor)
                 .padding()
             }
         }

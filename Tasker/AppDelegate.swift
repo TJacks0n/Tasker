@@ -5,23 +5,17 @@ import Combine
 class AppDelegate: NSObject, NSApplicationDelegate {
     var popover: NSPopover!
     var statusItem: NSStatusItem!
-    // Keep the ViewModel instance accessible
+    var menu: NSMenu!
     var taskViewModel = TaskViewModel()
     private var cancellables = Set<AnyCancellable>()
-    // Keep a reference to the hosting controller for resizing
-    private var hostingController: NSHostingController<TaskListView>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Set activation policy to prevent Dock icon and main menu
-        // You might prefer the Info.plist 'Application is agent (UIElement)' = YES setting
         NSApp.setActivationPolicy(.accessory)
 
-        // Use the AppDelegate's viewModel instance
         let contentView = TaskListView(viewModel: taskViewModel)
 
         popover = NSPopover()
-        // Store the hosting controller
-        hostingController = NSHostingController(rootView: contentView)
+        let hostingController = NSHostingController(rootView: contentView)
         popover.contentViewController = hostingController
         popover.behavior = .transient
 
@@ -29,96 +23,79 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = NSImage(named: "menuBarIcon")
             button.image?.isTemplate = true
-            // Set the action for the button
             button.action = #selector(togglePopover(_:))
-            // *** Add this line to handle right-clicks ***
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
-        // Observe task changes to update popover size using the stored hostingController
+        // Create the menu
+        menu = NSMenu()
+        // Add About item
+        menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator()) // Optional separator
+        menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+
         taskViewModel.$tasks
             .sink { [weak self] _ in
-                // Ensure hostingController is available before calling update
-                if let hc = self?.hostingController {
-                    self?.updatePopoverSize(for: hc)
-                }
+                self?.updatePopoverSize(for: hostingController)
             }
             .store(in: &cancellables)
-
-        // Perform initial size update after launch
-        DispatchQueue.main.async { [weak self] in
-            if let hc = self?.hostingController {
-                self?.updatePopoverSize(for: hc)
-            }
-        }
     }
 
     @objc func togglePopover(_ sender: AnyObject?) {
-        // *** Check if the event was a right-click ***
-        if NSApp.currentEvent?.type == .rightMouseUp {
-            // Create and show the context menu
-            if let button = statusItem.button {
-                let menu = createContextMenu()
-                statusItem.menu = menu // Assign the menu temporarily
-                // Programmatically click the button to show the menu immediately
-                button.performClick(nil)
-                // Important: Reset the menu after it's shown so left-click works for the popover
-                // Use async to ensure it happens after the menu action is processed
-                DispatchQueue.main.async { [weak self] in
-                    self?.statusItem.menu = nil
-                }
-            }
-        } else {
-            // *** Handle left-click (toggle popover) ***
+        guard let button = statusItem.button else { return }
+        guard let event = NSApp.currentEvent else { return }
+
+        if event.type == .rightMouseUp {
             if popover.isShown {
                 popover.performClose(sender)
-            } else if let button = statusItem.button {
-                // Ensure size is correct before showing
-                if let hc = hostingController {
-                    updatePopoverSize(for: hc)
-                }
-                // Show popover below the status bar item
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                // Make the popover's content view active
+            }
+            // Ensure the app is active before showing the menu,
+            // otherwise the About panel might not become key.
+            NSApp.activate(ignoringOtherApps: true)
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+        } else { // Left mouse up
+            if popover.isShown {
+                popover.performClose(sender)
+            } else {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
                 popover.contentViewController?.view.window?.becomeKey()
             }
         }
     }
 
-    // *** Function to create the context menu ***
-    func createContextMenu() -> NSMenu {
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        // Add other menu items here if needed
-        return menu
+    // Action for the "About Tasker" menu item
+    @objc func showAboutPanel(_ sender: Any?) {
+         // Close popover if open before showing About panel
+        if popover.isShown {
+            popover.performClose(sender)
+        }
+        // Show the standard About panel
+        // Ensure your Info.plist has values for Application Name, Version, and Copyright
+        NSApp.orderFrontStandardAboutPanel(
+            options: [
+                NSApplication.AboutPanelOptionKey.credits: NSAttributedString(
+                    string: "https://github.com/TJacks0n/Tasker", // Optional: Load from RTF if needed
+                    attributes: [
+                        .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+                    ]
+                ),
+                NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): "Copyright © 2025 TJacks0n" // Update copyright
+            ]
+        )
+        // Make sure the About panel comes to the front
+        NSApp.activate(ignoringOtherApps: true)
     }
 
-    // *** Keep your existing updatePopoverSize function ***
+
     private func updatePopoverSize(for hostingController: NSHostingController<TaskListView>) {
         guard let popover = popover else { return }
 
         DispatchQueue.main.async {
-            // Calculate the height dynamically based on the content
             let contentSize = hostingController.view.intrinsicContentSize
             let screenHeight = NSScreen.main?.visibleFrame.height ?? 700
-            let maxHeight = screenHeight - 50 // Leave space for the menu bar
-            // Ensure minimum height if needed, e.g., when list is empty
-            let calculatedHeight = max(contentSize.height, 50) // Example minimum height
-            let newHeight = min(calculatedHeight, maxHeight)
-
-            // Animate the size change if desired
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.1 // Short duration for responsiveness
-                context.allowsImplicitAnimation = true
-                popover.contentSize = NSSize(width: 300, height: newHeight)
-            }, completionHandler: nil)
+            let maxHeight = screenHeight - 50
+            let newHeight = min(contentSize.height, maxHeight)
+            popover.contentSize = NSSize(width: 300, height: newHeight)
         }
-    }
-}
-
-// Optional helper extension
-extension AppDelegate {
-    static var shared: AppDelegate? {
-        return NSApplication.shared.delegate as? AppDelegate
     }
 }
