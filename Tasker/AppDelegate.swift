@@ -10,7 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        //NSApp.setActivationPolicy(.accessory)
 
         let contentView = TaskListView(viewModel: taskViewModel)
 
@@ -23,25 +23,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = NSImage(named: "menuBarIcon")
             button.image?.isTemplate = true
-            button.action = #selector(togglePopover(_:))
+            button.action = #selector(togglePopover(_:)) // Correct: togglePopover is now a class member
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
         // Create the menu
         menu = NSMenu()
         // Add About item
-        menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: "")) // Correct: showAboutPanel is now a class member
         menu.addItem(NSMenuItem.separator()) // Optional separator
         menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         taskViewModel.$tasks
             .sink { [weak self] _ in
+                // Correct: updatePopoverSize is now a class member
                 self?.updatePopoverSize(for: hostingController)
             }
             .store(in: &cancellables)
-    }
 
-    @objc func togglePopover(_ sender: AnyObject?) {
+        // ADD this block to hide the Dock icon after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { // Adjust delay as needed (e.g., 0.5 seconds)
+            NSApp.setActivationPolicy(.accessory)
+        }
+    } // <<< --- ADD THIS CLOSING BRACE for applicationDidFinishLaunching
+
+    @objc func togglePopover(_ sender: AnyObject?) { // Correct: Now a class member
         guard let button = statusItem.button else { return }
         guard let event = NSApp.currentEvent else { return }
 
@@ -64,7 +70,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // Action for the "About Tasker" menu item
-    @objc func showAboutPanel(_ sender: Any?) {
+    @objc func showAboutPanel(_ sender: Any?) { // Correct: Now a class member
          // Close popover if open before showing About panel
         if popover.isShown {
             popover.performClose(sender)
@@ -87,7 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
 
-    private func updatePopoverSize(for hostingController: NSHostingController<TaskListView>) {
+    private func updatePopoverSize(for hostingController: NSHostingController<TaskListView>) { // Correct: Now a class member
         guard let popover = popover else { return }
 
         DispatchQueue.main.async {
@@ -98,4 +104,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover.contentSize = NSSize(width: 300, height: newHeight)
         }
     }
-}
+} // <<< --- This is the closing brace for the AppDelegate class
