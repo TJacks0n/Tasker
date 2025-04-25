@@ -6,11 +6,19 @@
 //
 import SwiftUI
 import Combine
+import AppKit
 
-struct Task: Identifiable {
+struct Task: Identifiable, Equatable { // Add Equatable
     let id = UUID()
     var title: String
     var isCompleted: Bool = false
+
+    // Add the Equatable requirement implementation
+    static func == (lhs: Task, rhs: Task) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.title == rhs.title &&
+               lhs.isCompleted == rhs.isCompleted
+    }
 }
 
 class TaskViewModel: ObservableObject {
@@ -23,31 +31,47 @@ class TaskViewModel: ObservableObject {
             return
         }
         let newTask = Task(title: newTaskTitle)
-        tasks.append(newTask)
+        // Use a spring animation
+        withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
+            tasks.append(newTask)
+        }
         print("Task added: \(newTask.title)")
         DispatchQueue.main.async {
-            self.newTaskTitle = "" // Clear the title immediately to prevent duplicate commits
+            self.newTaskTitle = ""
         }
         schedulePopoverSizeUpdate()
     }
 
     func toggleTaskCompletion(task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks[index].isCompleted.toggle()
+            // Use a spring animation
+            withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
+                tasks[index].isCompleted.toggle()
+            }
             schedulePopoverSizeUpdate()
         }
     }
 
     func removeCompletedTasks() {
-        tasks.removeAll { $0.isCompleted }
+        // Use spring animation again
+        withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
+            tasks.removeAll { $0.isCompleted }
+        }
         schedulePopoverSizeUpdate()
     }
 
+    func clearList() {
+        // Remove the withAnimation block here
+        tasks.removeAll()
+        // Rely on the popover size update animation
+        schedulePopoverSizeUpdate()
+    }
+    
     private var appDelegate: AppDelegate? {
         NSApplication.shared.delegate as? AppDelegate
     }
 
-    private func schedulePopoverSizeUpdate() {
+    func schedulePopoverSizeUpdate() {
         DispatchQueue.main.async { [weak self] in
             self?.updatePopoverSize()
         }
@@ -60,21 +84,15 @@ class TaskViewModel: ObservableObject {
         let rowHeight: CGFloat = 30
         let newHeight = baseHeight + CGFloat(tasks.count) * rowHeight + 20
         let maxHeight: CGFloat = 700
-        popover.contentSize = NSSize(width: 300, height: min(newHeight, maxHeight))
-    }
-    
-    func clearList() {
-        tasks.removeAll()
-        schedulePopoverSizeUpdate()
-    }
+        let finalSize = NSSize(width: 300, height: min(newHeight, maxHeight))
 
-    init() {
-        $tasks
-            .dropFirst()
-            .sink { [weak self] _ in
-                self?.schedulePopoverSizeUpdate()
-            }
-            .store(in: &cancellables)
+        // Animate the popover's size change by setting the property directly
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2 // Adjust duration as needed
+            context.allowsImplicitAnimation = true // This enables the animation
+            // Set the contentSize directly
+            popover.contentSize = finalSize
+        }, completionHandler: nil)
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -89,17 +107,31 @@ struct TaskListView: View {
                 viewModel.addTask()
             })
             .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding()
+            .padding(.horizontal)
+            .padding(.top, 10)
+
+            Divider()
+                .padding(.vertical, 2)
 
             VStack(spacing: 10) {
-                ForEach(viewModel.tasks) { task in
+                ForEach($viewModel.tasks) { $task in
                     HStack {
                         Button(action: {
                             viewModel.toggleTaskCompletion(task: task)
                         }) {
-                            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                            ZStack { // Apply frame and content shape here
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(task.isCompleted ? Color.purple : Color.gray, lineWidth: 2)
+                                
+                                if task.isCompleted {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.purple)
+                                }
+                            }
+                            .frame(width: 20, height: 20) // Set the size of the ZStack
+                            .contentShape(Rectangle()) // Make the whole area tappable
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(PlainButtonStyle()) // Keep default style minimal
 
                         Text(task.title)
                             .strikethrough(task.isCompleted)
@@ -107,11 +139,13 @@ struct TaskListView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                 }
+                .animation(.interpolatingSpring(stiffness: 170, damping: 15), value: viewModel.tasks) // Add this modifier
+                .frame(maxHeight: .infinity, alignment: .top)
             }
             .frame(maxHeight: .infinity, alignment: .top)
 
             HStack {
-                Button("Remove Completed Tasks") {
+                Button("Remove Completed") {
                     viewModel.removeCompletedTasks()
                 }
                 .padding()
