@@ -41,6 +41,14 @@ class TaskViewModel: ObservableObject {
         }
         schedulePopoverSizeUpdate()
     }
+    
+    // Add this method inside TaskViewModel class
+    func deleteTask(task: Task) {
+        withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
+            tasks.removeAll { $0.id == task.id }
+        }
+        schedulePopoverSizeUpdate()
+    }
 
     func toggleTaskCompletion(task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -113,52 +121,42 @@ struct TaskListView: View {
             Divider()
                 .padding(.vertical, 2)
 
-            VStack(spacing: 10) {
-                ForEach($viewModel.tasks) { $task in
-                    HStack {
-                        Button(action: {
-                            viewModel.toggleTaskCompletion(task: task)
-                        }) {
-                            ZStack { // Apply frame and content shape here
-                                RoundedRectangle(cornerRadius: 5)
-                                    .stroke(task.isCompleted ? Color.accentColor : Color.secondary, lineWidth: 2)
-                                
-                                // Fill with accent color if completed
-                                    .fill(task.isCompleted ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.2))
-                                
-                            }
-                            .frame(width: 12, height: 12) // Set the size of the ZStack
-                            .contentShape(Rectangle()) // Make the whole area tappable
-                        }
-                        .buttonStyle(PlainButtonStyle()) // Keep default style minimal
-
-                        Text(task.title)
-                            .strikethrough(task.isCompleted)
+            // Use ScrollView for potentially long lists
+            ScrollView {
+                VStack(spacing: 10) {
+                    // Use TaskRowView in ForEach
+                    ForEach($viewModel.tasks) { $task in
+                        TaskRowView(task: $task, viewModel: viewModel)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
+                    // Apply animation to the container of rows
+                    .animation(.interpolatingSpring(stiffness: 170, damping: 15), value: viewModel.tasks)
                 }
-                .animation(.interpolatingSpring(stiffness: 170, damping: 15), value: viewModel.tasks) // Add this modifier
-                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 5) // Add some padding above the list
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .frame(maxHeight: .infinity, alignment: .top) // Allow ScrollView to take available space
+
 
             HStack {
                 Button("Remove Completed") {
                     viewModel.removeCompletedTasks()
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.secondary)
-                .padding()
+                .tint(.secondary) // Keep secondary tint or change as needed
+                .padding(.leading)
+
+                Spacer()
 
                 Button("Clear List") {
                     viewModel.clearList()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.accentColor)
-                .padding()
+                .padding(.trailing)
             }
+            .padding(.top, 5)
+             .padding(.bottom, 10)
+             .padding(.horizontal)
         }
-        .frame(width: 300)
+        .frame(width: 300) // Keep the overall frame
     }
 }
