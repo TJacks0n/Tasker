@@ -258,7 +258,7 @@ struct TaskListView: View {
             .padding(.vertical, 10)
             .padding(.horizontal)
         }
-        .background(Color(nsColor: .windowBackgroundColor)) // Set the background for the entire view.
+        .background(.clear) // Set the background for the entire view.
         .frame(width: 300) // Define a fixed width for the view.
         // --- Alert ---
         // Confirmation dialog for the "Clear All" action.
