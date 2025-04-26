@@ -42,6 +42,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Called when the application finishes launching. Sets up the menu bar item, popover, and initial state.
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the SwiftUI view and inject the view model.
+        // IMPORTANT: For transparency, modify TaskListView to have a .background modifier
+        // e.g., .background(Color.black.opacity(0.7)) or .background(.ultraThinMaterial)
         let contentView = TaskListView(viewModel: taskViewModel)
         // Calculate the initial size needed for the popover.
         let initialSize = calculatePopoverSize(taskCount: taskViewModel.tasks.count)
@@ -49,7 +51,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create a hosting controller to embed the SwiftUI view.
         self.hostingController = NSHostingController(rootView: contentView)
         self.hostingController?.view.frame.size = initialSize // Set initial frame size
-        self.hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor // Ensure transparency if needed
+        // Make the hosting view layer-backed and clear for transparency pass-through
+        self.hostingController?.view.wantsLayer = true
+        self.hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor
 
         // Configure the popover.
         popover = NSPopover()
@@ -57,6 +61,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = hostingController
         popover.contentViewController?.view.setAccessibilityIdentifier("TaskerPopoverWindow")
         popover.behavior = .transient // Close popover when clicking outside
+        // Set the appearance to allow the background to show through if needed
+        popover.appearance = NSAppearance(named: .vibrantDark) // Or another appropriate appearance
 
         // Configure the status bar item.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
