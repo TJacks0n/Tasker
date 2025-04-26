@@ -175,10 +175,53 @@ final class TaskRowViewUITests: XCTestCase {
 
         // Verify the row is gone
         let taskTextElement = app.staticTexts[taskTitle]
-        let existsPredicate = NSPredicate(format: "exists == true")
+        let existsPredicate = NSPredicate(format: "exists == false") // Corrected predicate
         let expectation = XCTNSPredicateExpectation(predicate: existsPredicate, object: taskTextElement)
-        expectation.isInverted = true
         wait(for: [expectation], timeout: 5) // Increased timeout
+    }
+
+    func testEditTask() throws {
+        let initialTaskTitle = "My Test Task - Edit Initial \(UUID().uuidString)"
+        let editedTaskTitle = "My Test Task - Edited \(UUID().uuidString)"
+
+        addTask(title: initialTaskTitle)
+
+        // Find the row and the static text element
+        let taskRow = findTaskRow(containingText: initialTaskTitle)
+        let taskStaticText = taskRow.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'taskRowTitle_'")).firstMatch
+        XCTAssertTrue(taskStaticText.waitForExistence(timeout: 3), "Task title static text not found.")
+        XCTAssertTrue(taskStaticText.isHittable, "Task title static text is not hittable for double click.")
+
+        // Double click to enter edit mode
+        taskStaticText.doubleClick()
+        Thread.sleep(forTimeInterval: 0.5) // Allow time for TextField to appear
+
+        // Find the edit text field
+        let editTextField = taskRow.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'taskRowEditField_'")).firstMatch
+        XCTAssertTrue(editTextField.waitForExistence(timeout: 3), "Edit text field did not appear after double click.")
+        XCTAssertTrue(editTextField.waitForHittable(timeout: 2), "Edit text field is not hittable.")
+
+        // Clear existing text and type the new title, then press Enter
+        editTextField.click() // Ensure focus
+        // Select all and delete existing text
+        editTextField.typeKey("a", modifierFlags: .command)
+        editTextField.typeKey(.delete, modifierFlags: [])
+        editTextField.typeText(editedTaskTitle + "\n") // Type new title and submit with newline
+
+        // Wait for edit field to disappear and static text to update
+        let editFieldDisappearedPredicate = NSPredicate(format: "exists == false")
+        let editFieldExpectation = XCTNSPredicateExpectation(predicate: editFieldDisappearedPredicate, object: editTextField)
+
+        let updatedStaticText = app.staticTexts[editedTaskTitle] // Query for the new text
+        let updatedTextAppearedPredicate = NSPredicate(format: "exists == true")
+        let updatedTextExpectation = XCTNSPredicateExpectation(predicate: updatedTextAppearedPredicate, object: updatedStaticText)
+
+        wait(for: [editFieldExpectation, updatedTextExpectation], timeout: 5)
+
+        // Final verification: Ensure the row now contains the edited text
+        let finalTaskRow = findTaskRow(containingText: editedTaskTitle)
+        XCTAssertTrue(finalTaskRow.exists, "Task row with edited title '\(editedTaskTitle)' not found.")
+        XCTAssertFalse(app.staticTexts[initialTaskTitle].exists, "Task row with initial title '\(initialTaskTitle)' still exists.")
     }
 
     // MARK: - Helper Extension for Hittable Check with Timeout -
