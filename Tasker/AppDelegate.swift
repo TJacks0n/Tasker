@@ -63,8 +63,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Configure the right-click menu.
         menu = NSMenu()
         menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
-        // <<< Update action to call the BugReporter method
-        menu.addItem(NSMenuItem(title: "Report Bug...", action: #selector(showBugReportDialog(_:)), keyEquivalent: ""))
+
+        // *** Create the Report Bug menu item and set its identifier ***
+        let reportBugMenuItem = NSMenuItem(title: "Report Bug...", action: #selector(showBugReportDialog(_:)), keyEquivalent: "")
+        reportBugMenuItem.setAccessibilityIdentifier("reportBugButton") // Match UI test identifier
+        menu.addItem(reportBugMenuItem) // Add the configured item
+
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
