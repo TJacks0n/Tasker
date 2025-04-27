@@ -31,8 +31,11 @@ class BugReporterUITests: XCTestCase {
         XCTAssertTrue(reportMenuItem.waitForExistence(timeout: 1), "Report Bug menu item should exist")
         reportMenuItem.click()
 
-        // Keep the sleep for now as runModal can still have timing quirks
-        sleep(1)
+        // Wait for the bug report dialog to appear or become active
+        let bugReportDialog = app.dialogs["Report a Bug"]
+        let dialogExistsPredicate = NSPredicate(format: "exists == true")
+        let expectation = XCTNSPredicateExpectation(predicate: dialogExistsPredicate, object: bugReportDialog)
+        wait(for: [expectation], timeout: 5)
     }
 
     /// Tests the flow of successfully submitting a bug report.
