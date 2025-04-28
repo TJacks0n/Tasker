@@ -37,6 +37,7 @@ struct BugReporter {
         alert.addButton(withTitle: "Send Report")
         alert.addButton(withTitle: "Cancel")
 
+        // --- Text View Setup ---
         let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 350, height: 150))
         textView.isEditable = true
         textView.isSelectable = true
@@ -44,10 +45,20 @@ struct BugReporter {
         textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         textView.setAccessibilityIdentifier("bugDescriptionTextView")
 
+        // Style the text view for translucency and rounded corners
+        textView.drawsBackground = true // Need to draw background to show the color
+        textView.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.7) // Translucent background
+        textView.insertionPointColor = NSColor.textColor // Ensure cursor is visible
+        textView.wantsLayer = true // Enable layer for rounded corners
+        textView.layer?.cornerRadius = 6.0 // Set corner radius
+        textView.layer?.masksToBounds = true // Clip content to rounded corners
+
+        // --- Scroll View Setup ---
         let scrollview = NSScrollView(frame: NSRect(x: 0, y: 0, width: 350, height: 150))
         scrollview.hasVerticalScroller = true
         scrollview.documentView = textView
-        scrollview.borderType = .bezelBorder
+        scrollview.borderType = .noBorder // Remove the scroll view's border
+        scrollview.drawsBackground = false // Keep scroll view background clear
 
         alert.accessoryView = scrollview
         alert.window.initialFirstResponder = textView
@@ -69,7 +80,6 @@ struct BugReporter {
 
     /// Sends the bug report details to the Cloudflare Worker via HTTP POST.
     internal func sendReportToWorker(details: String, workerURL: URL) {
-        // ... (Payload preparation remains the same) ...
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Tasker"
         let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "N/A"
         let buildString = Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String ?? "N/A"
