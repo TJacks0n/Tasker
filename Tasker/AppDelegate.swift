@@ -21,10 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var hostingController: NSHostingController<TaskListView>?
     /// Handles bug reporting presentation and logic.
     private let bugReporter = BugReporter() // <<< Add BugReporter instance
-    /// The settings window controller for managing application settings.
-    /// Holds the reference to the settings window controller. Lazily instantiated.
-    private var settingsWindowController: SettingsWindowController?
-    
+
     // MARK: - UI Constants (Estimated Heights for Popover Sizing)
     // ... (keep existing constants)
     let inputAreaHeight: CGFloat = 45
@@ -167,23 +164,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Creates (if necessary) and shows the settings window.
     /// This method is triggered by the "Preferences..." menu item (Cmd+,).
     @objc func showPreferencesWindow(_ sender: Any?) {
-        // Close the main popover first
         if popover.isShown {
             popover.performClose(sender)
         }
-
-        // If the controller doesn't exist, create it.
-        if settingsWindowController == nil {
-            let settingsView = SettingsView() // Create the SwiftUI view
-            settingsWindowController = SettingsWindowController(settingsView: settingsView)
-            // Optional: Set the controller to nil when its window closes
-            // to allow it to be deallocated. Requires SettingsWindowController
-            // to notify the AppDelegate (e.g., via a delegate pattern or closure).
-            // For simplicity, we keep it alive until the app quits here.
-        }
-
-        // Show the window and activate the app.
-        settingsWindowController?.showAndActivate()
+        SettingsManager.showSettingsDialog()
     }
 
     // MARK: - Popover Size Calculation & Update
