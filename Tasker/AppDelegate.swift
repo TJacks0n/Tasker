@@ -21,7 +21,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var hostingController: NSHostingController<TaskListView>?
     /// Handles bug reporting presentation and logic.
     private let bugReporter = BugReporter() // <<< Add BugReporter instance
-
+    /// The settings window controller for managing application settings.
+    /// Holds the reference to the settings window controller. Lazily instantiated.
+    private var settingsWindowController: SettingsWindowController?
+    
     // MARK: - UI Constants (Estimated Heights for Popover Sizing)
     // ... (keep existing constants)
     let inputAreaHeight: CGFloat = 45
@@ -63,7 +66,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Configure the right-click menu.
         menu = NSMenu()
         menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
-
+        
+        // --- Add Settings Menu Item ---
+                // Using the standard selector `showSettings:` allows macOS to automatically
+                // add the "Settings..." item to the main app menu and assign Cmd+, shortcut.
+                let preferencesMenuItem = NSMenuItem(title: "Settings...", action: #selector(showPreferencesWindow(_:)), keyEquivalent: ",")
+                preferencesMenuItem.setAccessibilityIdentifier("settingsMenuItem") // For UI testing
+                menu.addItem(preferencesMenuItem)
+                // --- End Settings Menu Item ---
+        
+        menu.addItem(NSMenuItem.separator()) // Separator before Bug Report
+        
         // *** Create the Report Bug menu item and set its identifier ***
         let reportBugMenuItem = NSMenuItem(title: "Report Bug...", action: #selector(showBugReportDialog(_:)), keyEquivalent: "")
         reportBugMenuItem.setAccessibilityIdentifier("reportBugButton") // Match UI test identifier
@@ -149,6 +162,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Call the method on the BugReporter instance
         bugReporter.showReportBugDialog()
+    }
+    
+    /// Creates (if necessary) and shows the settings window.
+    /// This method is triggered by the "Preferences..." menu item (Cmd+,).
+    @objc func showPreferencesWindow(_ sender: Any?) {
+        // Close the main popover first
+        if popover.isShown {
+            popover.performClose(sender)
+        }
+
+        // If the controller doesn't exist, create it.
+        if settingsWindowController == nil {
+            let settingsView = SettingsView() // Create the SwiftUI view
+            settingsWindowController = SettingsWindowController(settingsView: settingsView)
+            // Optional: Set the controller to nil when its window closes
+            // to allow it to be deallocated. Requires SettingsWindowController
+            // to notify the AppDelegate (e.g., via a delegate pattern or closure).
+            // For simplicity, we keep it alive until the app quits here.
+        }
+
+        // Show the window and activate the app.
+        settingsWindowController?.showAndActivate()
     }
 
     // MARK: - Popover Size Calculation & Update
