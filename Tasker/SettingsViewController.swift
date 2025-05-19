@@ -173,29 +173,42 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
 }
 
 class ContentViewController: NSViewController {
-    private var contentLabel: NSTextField!
-
-    override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 450, height: 400))
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // Create a placeholder label
-        contentLabel = NSTextField(labelWithString: "Select a category from the sidebar")
-        contentLabel.font = NSFont.systemFont(ofSize: 15)
-        contentLabel.alignment = .center
-        contentLabel.translatesAutoresizingMaskIntoConstraints = false
-        self.view.addSubview(contentLabel)
-
-        NSLayoutConstraint.activate([
-            contentLabel.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            contentLabel.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
-        ])
-    }
+    private var currentViewController: NSViewController?
 
     func updateContent(for category: String) {
-        contentLabel.stringValue = "Selected category: \(category)"
+        // Remove the current view controller
+        currentViewController?.view.removeFromSuperview()
+        currentViewController?.removeFromParent()
+
+        // Load the new view controller based on the category
+        switch category {
+        case "General":
+            currentViewController = GeneralViewController()
+        case "Appearance":
+            currentViewController = AppearanceViewController()
+        case "Startup":
+            currentViewController = StartupViewController()
+        case "Behaviour":
+            currentViewController = BehaviourViewController()
+        case "Data":
+            currentViewController = DataViewController()
+        default:
+            currentViewController = nil
+        }
+
+        // Add the new view controller
+        if let newViewController = currentViewController {
+            self.addChild(newViewController)
+            self.view.addSubview(newViewController.view)
+
+            // Set up Auto Layout
+            newViewController.view.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                newViewController.view.topAnchor.constraint(equalTo: self.view.topAnchor),
+                newViewController.view.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+                newViewController.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+                newViewController.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            ])
+        }
     }
 }
