@@ -61,7 +61,7 @@ class SettingsViewController: NSViewController {
 class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewDataSource {
     private var tableView: NSTableView!
     private var searchField: NSSearchField!
-    private let categories = ["General", "Appearance", "Startup", "Behavior", "Data"]
+    private let categories = ["General", "Appearance", "Startup", "Behaviour", "Data"]
     var onSelectionChange: ((String) -> Void)?
 
     override func loadView() {
@@ -118,20 +118,45 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
         return categories.count
     }
     
+    private let categoryIcons: [NSImage?] = [
+        NSImage(systemSymbolName: "gear", accessibilityDescription: nil), // Cog icon for "General"
+        NSImage(systemSymbolName: "paintbrush", accessibilityDescription: nil),
+        NSImage(systemSymbolName: "power", accessibilityDescription: nil),
+        NSImage(systemSymbolName: "figure.walk", accessibilityDescription: nil),
+        NSImage(systemSymbolName: "tray", accessibilityDescription: nil)
+    ]
+
+    
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        return 30 // Adjust the height to add spacing between rows
+    }
+    
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        // Create a horizontal container view
+        let container = NSView()
+
+        // Create the icon view
+        let icon = NSImageView()
+        icon.image = categoryIcons[row] // Use the corresponding icon
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.imageScaling = .scaleProportionallyDown
+        container.addSubview(icon)
+
         // Create the text label
         let label = NSTextField(labelWithString: categories[row])
         label.font = NSFont.systemFont(ofSize: 13)
         label.alignment = .left
         label.translatesAutoresizingMaskIntoConstraints = false
-
-        // Set up a container view
-        let container = NSView()
         container.addSubview(label)
 
         // Set up Auto Layout
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 5),
+            icon.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 5),
+            icon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 16),
+            icon.heightAnchor.constraint(equalToConstant: 16),
+
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 5),
             label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -5)
         ])
