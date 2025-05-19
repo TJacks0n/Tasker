@@ -22,15 +22,14 @@ class SettingsViewController: NSViewController {
         // Create the split view controller
         splitViewController = NSSplitViewController()
         splitViewController.splitView.isVertical = true
-        splitViewController.view.frame = self.view.bounds
-        splitViewController.view.autoresizingMask = [.width, .height]
+        splitViewController.view.translatesAutoresizingMaskIntoConstraints = false
 
         // Create the sidebar
         sidebarViewController = SidebarViewController()
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
-        sidebarItem.minimumThickness = 125
-        sidebarItem.maximumThickness = 125 // Fixed size
-        sidebarItem.canCollapse = false // Prevent collapsing
+        sidebarItem.minimumThickness = 150
+        sidebarItem.maximumThickness = 150
+        sidebarItem.canCollapse = false
         splitViewController.addSplitViewItem(sidebarItem)
 
         // Create the content area
@@ -47,11 +46,21 @@ class SettingsViewController: NSViewController {
             guard let self = self else { return }
             self.contentViewController.updateContent(for: selectedItem)
         }
+
+        // Set up Auto Layout
+        NSLayoutConstraint.activate([
+            // Split view constraints
+            splitViewController.view.topAnchor.constraint(equalTo: self.view.topAnchor),
+            splitViewController.view.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            splitViewController.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            splitViewController.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+        ])
     }
 }
 
 class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewDataSource {
     private var tableView: NSTableView!
+    private var searchField: NSSearchField!
     private let categories = ["General", "Appearance", "Startup", "Behavior", "Data"]
     var onSelectionChange: ((String) -> Void)?
 
@@ -62,6 +71,14 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Create the search field
+        searchField = NSSearchField(frame: .zero)
+        searchField.placeholderString = "Search"
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.target = self
+        searchField.action = #selector(searchFieldChanged(_:))
+        self.view.addSubview(searchField)
+
         // Create the table view
         let scrollView = NSScrollView(frame: self.view.bounds)
         scrollView.autoresizingMask = [.width, .height]
@@ -71,26 +88,52 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
         tableView.dataSource = self
         tableView.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("CategoryColumn")))
         scrollView.documentView = tableView
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(scrollView)
+
+        // Set up Auto Layout
+        NSLayoutConstraint.activate([
+            // Search field constraints
+            searchField.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 10),
+            searchField.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 10),
+            searchField.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -10),
+            searchField.heightAnchor.constraint(equalToConstant: 30),
+
+            // Scroll view constraints
+            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 0),
+            scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+        ])
+    }
+
+    @objc private func searchFieldChanged(_ sender: NSSearchField) {
+        let searchText = sender.stringValue.lowercased()
+        // Filter categories based on search text (if needed)
+        // TODO - Add search logic once other settings features implemented.
+        print("Search text: \(searchText)")
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
         return categories.count
     }
-
+    
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let cell = NSTextField(labelWithString: categories[row])
-        cell.font = NSFont.systemFont(ofSize: 13)
-        cell.alignment = .left // Align text to the left horizontally
-        cell.translatesAutoresizingMaskIntoConstraints = false
+        // Create the text label
+        let label = NSTextField(labelWithString: categories[row])
+        label.font = NSFont.systemFont(ofSize: 13)
+        label.alignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
 
-        // Create a container view to center the text vertically
+        // Set up a container view
         let container = NSView()
-        container.addSubview(cell)
+        container.addSubview(label)
 
+        // Set up Auto Layout
         NSLayoutConstraint.activate([
-            cell.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 10), // Add padding to the left
-            cell.centerYAnchor.constraint(equalTo: container.centerYAnchor) // Center vertically
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 5),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -5)
         ])
 
         return container
