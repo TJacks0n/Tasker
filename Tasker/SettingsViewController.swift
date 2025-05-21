@@ -1,11 +1,40 @@
-//
-//  SettingsViewController.swift
-//  Tasker
-//
-//  Created by Thomas Jackson on 19/05/2025.
-//
-
 import Cocoa
+
+class AccentSidebarRowView: NSTableRowView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        NotificationCenter.default.addObserver(self, selector: #selector(accentColorChanged), name: .accentColorChanged, object: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        NotificationCenter.default.addObserver(self, selector: #selector(accentColorChanged), name: .accentColorChanged, object: nil)
+    }
+
+    @objc private func accentColorChanged() {
+        self.needsDisplay = true
+    }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        if isSelected {
+            var accent = AccentColorManager.shared.accentColor
+            if let deviceRGB = accent.usingColorSpace(.deviceRGB) {
+                accent = deviceRGB
+            }
+            let rect = bounds.insetBy(dx: 2, dy: 4)
+            let path = NSBezierPath(roundedRect: rect, xRadius: 6, yRadius: 6)
+            accent.setFill()
+            path.fill()
+        }
+    }
+}
+
+class ClickThroughView: NSView {
+    override func mouseDown(with event: NSEvent) {
+        self.window?.makeFirstResponder(nil)
+        super.mouseDown(with: event)
+    }
+}
 
 class SettingsViewController: NSViewController {
     private var splitViewController: NSSplitViewController!
@@ -13,18 +42,16 @@ class SettingsViewController: NSViewController {
     private var contentViewController: ContentViewController!
 
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 250))
+        self.view = ClickThroughView(frame: NSRect(x: 0, y: 0, width: 300, height: 250))
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Create the split view controller
         splitViewController = NSSplitViewController()
         splitViewController.splitView.isVertical = true
         splitViewController.view.translatesAutoresizingMaskIntoConstraints = false
 
-        // Create the sidebar
         sidebarViewController = SidebarViewController()
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
         sidebarItem.minimumThickness = 150
@@ -32,24 +59,19 @@ class SettingsViewController: NSViewController {
         sidebarItem.canCollapse = false
         splitViewController.addSplitViewItem(sidebarItem)
 
-        // Create the content area
         contentViewController = ContentViewController()
         let contentItem = NSSplitViewItem(viewController: contentViewController)
         splitViewController.addSplitViewItem(contentItem)
 
-        // Add the split view controller to the main view
         self.addChild(splitViewController)
         self.view.addSubview(splitViewController.view)
 
-        // Handle the sidebar selection
         sidebarViewController.onSelectionChange = { [weak self] selectedItem in
             guard let self = self else { return }
             self.contentViewController.updateContent(for: selectedItem)
         }
 
-        // Set up Auto Layout
         NSLayoutConstraint.activate([
-            // Split view constraints
             splitViewController.view.topAnchor.constraint(equalTo: self.view.topAnchor),
             splitViewController.view.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             splitViewController.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
@@ -59,8 +81,8 @@ class SettingsViewController: NSViewController {
 }
 
 class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewDataSource {
-    private var tableView: NSTableView!
-    private var searchField: NSSearchField!
+    private var tableView: AccentTableView!
+    private var searchField: AccentSearchField!
     private let categories = ["General", "Appearance", "Startup", "Behaviour", "Data"]
     var onSelectionChange: ((String) -> Void)?
 
@@ -71,19 +93,25 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Create the search field
-        searchField = NSSearchField(frame: .zero)
+        searchField = AccentSearchField(frame: .zero)
         searchField.placeholderString = "Search"
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.target = self
         searchField.action = #selector(searchFieldChanged(_:))
         self.view.addSubview(searchField)
 
-        // Create the table view
+        NotificationCenter.default.addObserver(forName: .accentColorChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.searchField.needsDisplay = true
+            self?.tableView.reloadData()
+            self?.tableView.enumerateAvailableRowViews { rowView, _ in
+                rowView.needsDisplay = true
+            }
+        }
+
         let scrollView = NSScrollView(frame: self.view.bounds)
         scrollView.autoresizingMask = [.width, .height]
-        tableView = NSTableView()
-        tableView.headerView = nil // Remove the header
+        tableView = AccentTableView()
+        tableView.headerView = nil
         tableView.delegate = self
         tableView.dataSource = self
         tableView.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("CategoryColumn")))
@@ -91,15 +119,12 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(scrollView)
 
-        // Set up Auto Layout
         NSLayoutConstraint.activate([
-            // Search field constraints
             searchField.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 10),
             searchField.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 10),
             searchField.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -10),
             searchField.heightAnchor.constraint(equalToConstant: 30),
 
-            // Scroll view constraints
             scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 0),
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
@@ -109,47 +134,51 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
 
     @objc private func searchFieldChanged(_ sender: NSSearchField) {
         let searchText = sender.stringValue.lowercased()
-        // Filter categories based on search text (if needed)
-        // TODO - Add search logic once other settings features implemented.
         print("Search text: \(searchText)")
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
         return categories.count
     }
-    
+
     private let categoryIcons: [NSImage?] = [
-        NSImage(systemSymbolName: "gear", accessibilityDescription: nil), // Cog icon for "General"
+        NSImage(systemSymbolName: "gear", accessibilityDescription: nil),
         NSImage(systemSymbolName: "paintbrush", accessibilityDescription: nil),
         NSImage(systemSymbolName: "power", accessibilityDescription: nil),
         NSImage(systemSymbolName: "figure.walk", accessibilityDescription: nil),
         NSImage(systemSymbolName: "tray", accessibilityDescription: nil)
     ]
 
-    
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        return 30 // Adjust the height to add spacing between rows
+        return 30
     }
-    
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        // Create a horizontal container view
-        let container = NSView()
 
-        // Create the icon view
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        return AccentSidebarRowView()
+    }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        let container = NSView()
+        container.wantsLayer = true
+
+        let isSelected = tableView.selectedRowIndexes.contains(row)
+
         let icon = NSImageView()
-        icon.image = categoryIcons[row] // Use the corresponding icon
+        icon.image = categoryIcons[row]
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.imageScaling = .scaleProportionallyDown
+        icon.contentTintColor = isSelected ? .white : .labelColor
         container.addSubview(icon)
 
-        // Create the text label
         let label = NSTextField(labelWithString: categories[row])
         label.font = NSFont.systemFont(ofSize: 13)
         label.alignment = .left
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.backgroundColor = .clear
+        label.drawsBackground = false
+        label.textColor = isSelected ? .white : .labelColor
         container.addSubview(label)
 
-        // Set up Auto Layout
         NSLayoutConstraint.activate([
             icon.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 5),
             icon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
@@ -169,22 +198,21 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
         if selectedRow >= 0 {
             onSelectionChange?(categories[selectedRow])
         }
+        tableView.setNeedsDisplay(tableView.visibleRect)
     }
 }
 
 class ContentViewController: NSViewController {
     private var currentViewController: NSViewController?
-    
+
     override func loadView() {
         self.view = NSView()
     }
-    
+
     func updateContent(for category: String) {
-        // Remove the current view controller
         currentViewController?.view.removeFromSuperview()
         currentViewController?.removeFromParent()
-        
-        // Load the new view controller based on the category
+
         switch category {
         case "General":
             currentViewController = GeneralViewController()
@@ -199,8 +227,7 @@ class ContentViewController: NSViewController {
         default:
             currentViewController = nil
         }
-        
-        // Add the new view controller
+
         if let newViewController = currentViewController {
             self.addChild(newViewController)
             self.view.addSubview(newViewController.view)
@@ -211,14 +238,12 @@ class ContentViewController: NSViewController {
                 newViewController.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
                 newViewController.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
             ])
-            
-            // Dynamically size window to fit content
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 self.view.layoutSubtreeIfNeeded()
                 newViewController.view.layoutSubtreeIfNeeded()
                 let contentSize = newViewController.view.fittingSize
                 if let window = self.view.window {
-                    // Sidebar is 150, add padding
                     let minWidth = contentSize.width + 170
                     let minHeight = max(contentSize.height, 250)
                     window.setContentSize(NSSize(width: minWidth, height: minHeight))

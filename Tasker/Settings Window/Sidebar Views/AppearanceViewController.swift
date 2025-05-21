@@ -43,14 +43,12 @@ class AppearanceViewController: NSViewController {
         accentColorRow.addArrangedSubview(accentColorLabel)
         accentColorLabel.widthAnchor.constraint(equalToConstant: 100).isActive = true
 
-        // Add flexible spacer to push buttons to the right
         let spacer = NSView()
         spacer.translatesAutoresizingMaskIntoConstraints = false
         accentColorRow.addArrangedSubview(spacer)
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        // Color buttons stack
         colorButtonsStack.orientation = .horizontal
         colorButtonsStack.spacing = 15
         colorButtonsStack.alignment = .centerY
@@ -68,7 +66,7 @@ class AppearanceViewController: NSViewController {
             #selector(colorButtonPressed(_:)),
             #selector(colorButtonPressed(_:)),
             #selector(colorButtonPressed(_:)),
-            #selector(colorButtonPressed(_:)),
+            #selector(systemAccentPressed(_:)),
             #selector(openColorPicker)
         ]
 
@@ -82,7 +80,6 @@ class AppearanceViewController: NSViewController {
             colorButtonsStack.addArrangedSubview(button)
         }
 
-        // Single label for color name
         colorLabel.font = NSFont.systemFont(ofSize: 9)
         colorLabel.alignment = .center
         colorLabel.isEditable = false
@@ -92,7 +89,6 @@ class AppearanceViewController: NSViewController {
         colorLabel.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(colorLabel)
 
-        // Layout constraints
         NSLayoutConstraint.activate([
             titleLabel.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             titleLabel.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 20),
@@ -112,11 +108,20 @@ class AppearanceViewController: NSViewController {
             self.view.widthAnchor.constraint(greaterThanOrEqualToConstant: 350)
         ])
 
-        // Initial constraint: center label under the first button
         if let firstButton = colorButtonsStack.arrangedSubviews.first {
             colorLabelCenterConstraint = colorLabel.centerXAnchor.constraint(equalTo: firstButton.centerXAnchor)
             colorLabelCenterConstraint?.isActive = true
         }
+
+        // Observe accent color changes
+        NotificationCenter.default.addObserver(forName: .accentColorChanged, object: nil, queue: .main) { [weak self] notification in
+            if let color = notification.object as? NSColor {
+                self?.updateSelectedButton(for: color)
+            }
+        }
+
+        // Set initial selection from AccentColorManager
+        updateSelectedButton(for: AccentColorManager.shared.accentColor)
     }
 
     @objc private func colorButtonPressed(_ sender: ColorButton) {
@@ -130,10 +135,26 @@ class AppearanceViewController: NSViewController {
                 }
             }
         }
-        if let backgroundColor = sender.layer?.backgroundColor {
-            selectedAccentColor = NSColor(cgColor: backgroundColor)
-            applyAccentColor()
+        if let backgroundColor = sender.layer?.backgroundColor, let color = NSColor(cgColor: backgroundColor) {
+            selectedAccentColor = color
+            AccentColorManager.shared.accentColor = color
         }
+    }
+
+    @objc private func systemAccentPressed(_ sender: ColorButton) {
+        for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
+            if let button = view as? ColorButton {
+                button.isSelected = (button == sender)
+                if button == sender {
+                    colorLabel.stringValue = colorNames[i]
+                    colorLabel.alphaValue = 1.0
+                    moveLabel(under: button)
+                }
+            }
+        }
+        let systemColor = NSColor.controlAccentColor
+        selectedAccentColor = systemColor
+        AccentColorManager.shared.accentColor = systemColor
     }
 
     private func moveLabel(under button: NSView) {
@@ -170,17 +191,11 @@ class AppearanceViewController: NSViewController {
         return row
     }
 
-    private func applyAccentColor() {
-        guard let color = selectedAccentColor else { return }
-        NotificationCenter.default.post(name: .accentColorChanged, object: color)
-    }
-
     @objc private func openColorPicker(_ sender: ColorButton) {
         let colorPanel = NSColorPanel.shared
         colorPanel.setTarget(self)
         colorPanel.setAction(#selector(customColorSelected(_:)))
         colorPanel.orderFront(nil)
-        // Show label for "Custom"
         for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
             if let button = view as? ColorButton {
                 button.isSelected = (button == sender)
@@ -196,8 +211,7 @@ class AppearanceViewController: NSViewController {
     @objc private func customColorSelected(_ sender: NSColorPanel) {
         let selectedColor = sender.color
         selectedAccentColor = selectedColor
-        applyAccentColor()
-        // Highlight "Custom" button and update label
+        AccentColorManager.shared.accentColor = selectedColor
         if let customButton = colorButtonsStack.arrangedSubviews.last as? ColorButton {
             customButton.layer?.backgroundColor = selectedColor.cgColor
             for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
@@ -223,6 +237,21 @@ class AppearanceViewController: NSViewController {
             NSApp.appearance = NSAppearance(named: .darkAqua)
         default:
             break
+        }
+    }
+
+    private func updateSelectedButton(for color: NSColor) {
+        for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
+            if let button = view as? ColorButton {
+                let buttonColor = NSColor(cgColor: button.layer?.backgroundColor ?? .clear) ?? .clear
+                let isSelected = buttonColor.usingColorSpace(.deviceRGB)?.isEqual(to: color.usingColorSpace(.deviceRGB) ?? color) ?? false
+                button.isSelected = isSelected
+                if isSelected {
+                    colorLabel.stringValue = colorNames[i]
+                    colorLabel.alphaValue = 1.0
+                    moveLabel(under: button)
+                }
+            }
         }
     }
 }
