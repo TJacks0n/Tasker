@@ -3,7 +3,10 @@ import Cocoa
 class AppearanceViewController: NSViewController {
     private let themeDropdown = NSPopUpButton()
     private let colorButtonsStack = NSStackView()
+    private let colorLabel = NSTextField(labelWithString: "")
     private var selectedAccentColor: NSColor?
+    private let colorNames = ["Blue", "Red", "Green", "Yellow", "System", "Custom"]
+    private var colorLabelCenterConstraint: NSLayoutConstraint?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,6 +32,7 @@ class AppearanceViewController: NSViewController {
         accentColorRow.orientation = .horizontal
         accentColorRow.spacing = 10
         accentColorRow.alignment = .top
+        accentColorRow.distribution = .fill
         accentColorRow.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(accentColorRow)
 
@@ -39,50 +43,54 @@ class AppearanceViewController: NSViewController {
         accentColorRow.addArrangedSubview(accentColorLabel)
         accentColorLabel.widthAnchor.constraint(equalToConstant: 100).isActive = true
 
+        // Add flexible spacer to push buttons to the right
+        let spacer = NSView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        accentColorRow.addArrangedSubview(spacer)
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         // Color buttons stack
         colorButtonsStack.orientation = .horizontal
         colorButtonsStack.spacing = 15
-        colorButtonsStack.alignment = .top
-        colorButtonsStack.distribution = .fill
+        colorButtonsStack.alignment = .centerY
+        colorButtonsStack.distribution = .equalSpacing
         colorButtonsStack.translatesAutoresizingMaskIntoConstraints = false
         accentColorRow.addArrangedSubview(colorButtonsStack)
+        colorButtonsStack.setContentHuggingPriority(.required, for: .horizontal)
+        colorButtonsStack.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let colors: [(NSColor, String, Selector?)] = [
-            (.systemBlue, "Blue", #selector(colorButtonPressed(_:))),
-            (.systemRed, "Red", #selector(colorButtonPressed(_:))),
-            (.systemGreen, "Green", #selector(colorButtonPressed(_:))),
-            (.systemYellow, "Yellow", #selector(colorButtonPressed(_:))),
-            (.controlAccentColor, "System", #selector(colorButtonPressed(_:))),
-            (.controlBackgroundColor, "Custom", #selector(openColorPicker))
+        let colors: [NSColor] = [
+            .systemBlue, .systemRed, .systemGreen, .systemYellow, .controlAccentColor, .controlBackgroundColor
+        ]
+        let actions: [Selector?] = [
+            #selector(colorButtonPressed(_:)),
+            #selector(colorButtonPressed(_:)),
+            #selector(colorButtonPressed(_:)),
+            #selector(colorButtonPressed(_:)),
+            #selector(colorButtonPressed(_:)),
+            #selector(openColorPicker)
         ]
 
-        for (color, labelText, action) in colors {
-            let container = NSStackView()
-            container.orientation = .vertical
-            container.alignment = .centerX
-            container.spacing = 2
-            container.translatesAutoresizingMaskIntoConstraints = false
-
+        for (i, color) in colors.enumerated() {
             let button = ColorButton(color: color)
-            button.action = action
+            button.action = actions[i]
             button.target = self
+            button.tag = i
             button.widthAnchor.constraint(equalToConstant: 18).isActive = true
             button.heightAnchor.constraint(equalToConstant: 18).isActive = true
-            container.addArrangedSubview(button)
-
-            let label = NSTextField(labelWithString: labelText)
-            label.font = NSFont.systemFont(ofSize: 9)
-            label.alignment = .center
-            label.isEditable = false
-            label.isBordered = false
-            label.backgroundColor = .clear
-            label.isHidden = true
-            label.lineBreakMode = .byClipping
-            label.setContentHuggingPriority(.required, for: .horizontal)
-            container.addArrangedSubview(label)
-
-            colorButtonsStack.addArrangedSubview(container)
+            colorButtonsStack.addArrangedSubview(button)
         }
+
+        // Single label for color name
+        colorLabel.font = NSFont.systemFont(ofSize: 9)
+        colorLabel.alignment = .center
+        colorLabel.isEditable = false
+        colorLabel.isBordered = false
+        colorLabel.backgroundColor = .clear
+        colorLabel.alphaValue = 0.0
+        colorLabel.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(colorLabel)
 
         // Layout constraints
         NSLayoutConstraint.activate([
@@ -95,28 +103,46 @@ class AppearanceViewController: NSViewController {
 
             accentColorRow.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 20),
             accentColorRow.topAnchor.constraint(equalTo: themeRow.bottomAnchor, constant: 20),
-            accentColorRow.trailingAnchor.constraint(lessThanOrEqualTo: self.view.trailingAnchor, constant: -20),
+            accentColorRow.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -20),
+
+            colorButtonsStack.heightAnchor.constraint(equalToConstant: 18),
+
+            colorLabel.topAnchor.constraint(equalTo: accentColorRow.bottomAnchor, constant: 6),
+            colorLabel.widthAnchor.constraint(equalToConstant: 50),
             self.view.widthAnchor.constraint(greaterThanOrEqualToConstant: 350)
         ])
+
+        // Initial constraint: center label under the first button
+        if let firstButton = colorButtonsStack.arrangedSubviews.first {
+            colorLabelCenterConstraint = colorLabel.centerXAnchor.constraint(equalTo: firstButton.centerXAnchor)
+            colorLabelCenterConstraint?.isActive = true
+        }
     }
 
     @objc private func colorButtonPressed(_ sender: ColorButton) {
-        for view in colorButtonsStack.arrangedSubviews {
-            if let container = view as? NSStackView,
-               let button = container.arrangedSubviews.first as? ColorButton,
-               let label = container.arrangedSubviews.last as? NSTextField {
-                button.isSelected = false
-                label.isHidden = true
+        for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
+            if let button = view as? ColorButton {
+                button.isSelected = (button == sender)
+                if button == sender {
+                    colorLabel.stringValue = colorNames[i]
+                    colorLabel.alphaValue = 1.0
+                    moveLabel(under: button)
+                }
             }
-        }
-        if let container = sender.superview as? NSStackView,
-           let label = container.arrangedSubviews.last as? NSTextField {
-            sender.isSelected = true
-            label.isHidden = false
         }
         if let backgroundColor = sender.layer?.backgroundColor {
             selectedAccentColor = NSColor(cgColor: backgroundColor)
             applyAccentColor()
+        }
+    }
+
+    private func moveLabel(under button: NSView) {
+        colorLabelCenterConstraint?.isActive = false
+        colorLabelCenterConstraint = colorLabel.centerXAnchor.constraint(equalTo: button.centerXAnchor)
+        colorLabelCenterConstraint?.isActive = true
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            self.view.layoutSubtreeIfNeeded()
         }
     }
 
@@ -137,7 +163,6 @@ class AppearanceViewController: NSViewController {
         row.addArrangedSubview(actionView)
         label.widthAnchor.constraint(equalToConstant: 100).isActive = true
 
-        // Do NOT set any width constraint on the popup
         if let popup = actionView as? NSPopUpButton {
             popup.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         }
@@ -150,31 +175,41 @@ class AppearanceViewController: NSViewController {
         NotificationCenter.default.post(name: .accentColorChanged, object: color)
     }
 
-    @objc private func openColorPicker() {
+    @objc private func openColorPicker(_ sender: ColorButton) {
         let colorPanel = NSColorPanel.shared
         colorPanel.setTarget(self)
         colorPanel.setAction(#selector(customColorSelected(_:)))
         colorPanel.orderFront(nil)
+        // Show label for "Custom"
+        for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
+            if let button = view as? ColorButton {
+                button.isSelected = (button == sender)
+                if button == sender {
+                    colorLabel.stringValue = colorNames[i]
+                    colorLabel.alphaValue = 1.0
+                    moveLabel(under: button)
+                }
+            }
+        }
     }
 
     @objc private func customColorSelected(_ sender: NSColorPanel) {
         let selectedColor = sender.color
         selectedAccentColor = selectedColor
         applyAccentColor()
-        for view in colorButtonsStack.arrangedSubviews {
-            if let container = view as? NSStackView,
-               let button = container.arrangedSubviews.first as? ColorButton,
-               let label = container.arrangedSubviews.last as? NSTextField {
-                button.isSelected = false
-                label.isHidden = true
-            }
-        }
-        if let customContainer = colorButtonsStack.arrangedSubviews.last as? NSStackView,
-           let customButton = customContainer.arrangedSubviews.first as? ColorButton,
-           let customLabel = customContainer.arrangedSubviews.last as? NSTextField {
+        // Highlight "Custom" button and update label
+        if let customButton = colorButtonsStack.arrangedSubviews.last as? ColorButton {
             customButton.layer?.backgroundColor = selectedColor.cgColor
-            customButton.isSelected = true
-            customLabel.isHidden = false
+            for (i, view) in colorButtonsStack.arrangedSubviews.enumerated() {
+                if let button = view as? ColorButton {
+                    button.isSelected = (button == customButton)
+                    if button == customButton {
+                        colorLabel.stringValue = colorNames[i]
+                        colorLabel.alphaValue = 1.0
+                        moveLabel(under: button)
+                    }
+                }
+            }
         }
     }
 
