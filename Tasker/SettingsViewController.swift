@@ -13,7 +13,7 @@ class SettingsViewController: NSViewController {
     private var contentViewController: ContentViewController!
 
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 250))
+        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 250))
     }
 
     override func viewDidLoad() {
@@ -174,12 +174,16 @@ class SidebarViewController: NSViewController, NSTableViewDelegate, NSTableViewD
 
 class ContentViewController: NSViewController {
     private var currentViewController: NSViewController?
-
+    
+    override func loadView() {
+        self.view = NSView()
+    }
+    
     func updateContent(for category: String) {
         // Remove the current view controller
         currentViewController?.view.removeFromSuperview()
         currentViewController?.removeFromParent()
-
+        
         // Load the new view controller based on the category
         switch category {
         case "General":
@@ -195,13 +199,11 @@ class ContentViewController: NSViewController {
         default:
             currentViewController = nil
         }
-
+        
         // Add the new view controller
         if let newViewController = currentViewController {
             self.addChild(newViewController)
             self.view.addSubview(newViewController.view)
-
-            // Set up Auto Layout
             newViewController.view.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
                 newViewController.view.topAnchor.constraint(equalTo: self.view.topAnchor),
@@ -209,6 +211,20 @@ class ContentViewController: NSViewController {
                 newViewController.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
                 newViewController.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
             ])
+            
+            // Dynamically size window to fit content
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.view.layoutSubtreeIfNeeded()
+                newViewController.view.layoutSubtreeIfNeeded()
+                let contentSize = newViewController.view.fittingSize
+                if let window = self.view.window {
+                    // Sidebar is 150, add padding
+                    let minWidth = contentSize.width + 170
+                    let minHeight = max(contentSize.height, 250)
+                    window.setContentSize(NSSize(width: minWidth, height: minHeight))
+                    window.minSize = NSSize(width: minWidth, height: minHeight)
+                }
+            }
         }
     }
 }
