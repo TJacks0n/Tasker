@@ -1,4 +1,4 @@
-# ✅ Tasker - Simple macOS Menu Bar Task List
+# ![32x32@2x](https://github.com/user-attachments/assets/f759b0ff-ec94-4fad-b099-6aa74d4e4b09) Tasker - Simple macOS Menu Bar Task List
 
 Tasker is a lightweight macOS application that lives in your menu bar, providing a quick and easy way to manage your daily tasks.
 
