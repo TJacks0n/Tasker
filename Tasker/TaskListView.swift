@@ -304,14 +304,14 @@ struct AddTaskView: View {
     var body: some View {
         // Horizontal stack for the text field and add button.
         HStack {
-            // Text field for entering the new task title.
-            TextField("Add a new task...", text: $viewModel.newTaskTitle)
-                .textFieldStyle(.plain) // Use plain style for a seamless look within the list context.
+            // Use AccentColorTextField for custom cursor color in the add-task input
+            AccentColorTextField(text: $viewModel.newTaskTitle, onCommit: addTask)
+                .frame(height: AppStyle.defaultFontSize + 6)
                 .font(.system(size: AppStyle.defaultFontSize))
-                .focused($isInputActive) // Bind the focus state to the isInputActive property.
-                .onSubmit(addTask) // Call addTask when the user presses Enter/Return.
+                .focused($isInputActive)
+                .onSubmit(addTask)
                 .accessibilityIdentifier("newTaskTextField")
-
+            
             // Button to trigger adding the task.
             Button(action: addTask) {
                 Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
@@ -339,6 +339,7 @@ struct AddTaskView: View {
         //isInputActive = true
     }
 }
+
 
 // 5. Drop Delegate Helper Struct
 /// Implements the `DropDelegate` protocol to handle drag-and-drop operations for `Task` items
