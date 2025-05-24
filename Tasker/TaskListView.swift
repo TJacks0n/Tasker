@@ -113,35 +113,36 @@ class TaskViewModel: ObservableObject {
     /// Calculates the correct source and destination indices and uses `tasks.move`
     /// to reorder the array with an animation.
     func moveTask(sourceID: UUID, targetID: UUID, moveAbove: Bool) {
-            // Find the indices of the source (dragged) and target (drop) tasks.
-            guard let sourceIndex = tasks.firstIndex(where: { $0.id == sourceID }),
-                  let targetIndex = tasks.firstIndex(where: { $0.id == targetID }) else {
-                print("Error: Could not find source or target index for move.")
-                return
-            }
-
-            // Prevent moving an item onto itself.
-            if sourceIndex == targetIndex { return }
-
-            // Determine the offset for the `tasks.move` function.
-            // If dropping *above* the target, the destination offset is the target's index.
-            // If dropping *below* the target, the destination offset is the target's index + 1.
-            let destinationIndex = moveAbove ? targetIndex : targetIndex + 1
-
-            // Perform the move operation with animation.
-            // `tasks.move` handles the index adjustments internally.
-            withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
-                 tasks.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex)
-            }
+        // Find the indices of the source (dragged) and target (drop) tasks.
+        guard let sourceIndex = tasks.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = tasks.firstIndex(where: { $0.id == targetID }) else {
+            print("Error: Could not find source or target index for move.")
+            return
         }
-}
 
+        // Prevent moving an item onto itself.
+        if sourceIndex == targetIndex { return }
+
+        // Determine the offset for the `tasks.move` function.
+        // If dropping *above* the target, the destination offset is the target's index.
+        // If dropping *below* the target, the destination offset is the target's index + 1.
+        let destinationIndex = moveAbove ? targetIndex : targetIndex + 1
+
+        // Perform the move operation with animation.
+        // `tasks.move` handles the index adjustments internally.
+        withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
+            tasks.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex)
+        }
+    }
+}
 
 // 3. Main Task List View (UI Layout)
 /// The primary SwiftUI view that displays the list of tasks, input field, and control buttons.
 struct TaskListView: View {
     /// The view model containing the task data and logic. Observed for changes.
     @ObservedObject var viewModel: TaskViewModel
+    /// The global settings manager for font size, color theme, etc.
+    @EnvironmentObject var settings: SettingsManager
     /// State variable to control the presentation of the "Clear All" confirmation alert.
     @State private var showingClearAlert = false
     /// State variable to hold the `Task` currently being dragged (if any).
@@ -156,90 +157,97 @@ struct TaskListView: View {
             // --- Input Area ---
             // View containing the text field and button for adding new tasks.
             AddTaskView(viewModel: viewModel)
-                .padding(.horizontal)
-                .padding(.top, 10)
-                .padding(.bottom, 5)
+                .padding(.horizontal, AppStyle.rowPadding)
+                .padding(.top, AppStyle.rowPadding)
+                .padding(.bottom, AppStyle.rowPadding / 2)
 
             // Visual separator below the input area.
-            Divider().padding(.horizontal)
+            Divider().padding(.horizontal, AppStyle.rowPadding)
 
             // --- Task List Area ---
             // Conditionally display either the task list or an empty state message.
             if viewModel.tasks.isEmpty {
-                 // Message shown when there are no tasks.
-                 Text("No tasks yet!")
-                     .foregroundColor(.secondary)
-                     .padding()
-                     .frame(maxWidth: .infinity, alignment: .center)
-                     .frame(height: 60) // Ensure empty state has some height
-                     .frame(minHeight: 60) // Explicit min height
-             } else {
-                 // Scrollable container for the list of tasks.
-                 ScrollView {
-                     // Lazily loads task rows as they become visible.
-                     LazyVStack(spacing: 0) {
-                         // Iterate over the tasks in the view model.
-                         ForEach($viewModel.tasks) { $task in
-                             // Vertical stack for each task row and its associated drop indicators.
-                             VStack(spacing: 0) {
-                                 // --- Drop indicator ABOVE the task row ---
-                                 // Visible only when dragging over the top half of the row.
-                                 Rectangle()
-                                     .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == true ? Color.accentColor : Color.clear)
-                                     .frame(height: 2)
-                                     .padding(.horizontal, 5) // Indent slightly
+                // Message shown when there are no tasks.
+                Text("No tasks yet!")
+                    .foregroundColor(AppStyle.secondaryTextColor)
+                    .font(.system(size: settings.fontSize))
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(height: AppStyle.emptyStateHeight)
+                    .frame(minHeight: AppStyle.emptyStateHeight)
+            } else {
+                // Scrollable container for the list of tasks.
+                ScrollView {
+                    // Lazily loads task rows as they become visible.
+                    LazyVStack(spacing: 0) {
+                        // Iterate over the tasks in the view model.
+                        ForEach($viewModel.tasks) { $task in
+                            // Vertical stack for each task row and its associated drop indicators.
+                            VStack(spacing: 0) {
+                                // --- Drop indicator ABOVE the task row ---
+                                // Visible only when dragging over the top half of the row.
+                                Rectangle()
+                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == true ? AppStyle.accentColor : .clear)
+                                    .frame(height: 2)
+                                    .padding(.horizontal, AppStyle.rowPadding / 2)
 
-                                 // The view representing a single task row.
-                                 TaskRowView(task: $task, viewModel: viewModel)
-                                     .padding(.vertical, 2) // Add slight vertical padding around row
-                                     // --- Drag Source ---
-                                     // Makes the TaskRowView draggable.
-                                     .onDrag {
-                                         self.draggedTask = task // Store the task being dragged.
-                                         self.dropTargetInfo = nil // Clear drop target when starting a new drag.
-                                         // Provide the task's ID as the draggable data.
-                                         return NSItemProvider(object: task.id.uuidString as NSString)
-                                     } preview: {
-                                         // Optional: Custom view shown while dragging.
-                                         TaskRowView(task: $task, viewModel: viewModel)
-                                             .frame(width: 280) // Match list width approx
-                                             .background(.background) // Use a background for preview
-                                     }
-                                     // --- Drop Target ---
-                                     // Makes the TaskRowView accept drops.
-                                     .onDrop(of: [UTType.taskItem, .plainText], // Accepts custom task type or plain text UUID.
-                                             delegate: TaskDropDelegate( // Uses a delegate to handle drop logic.
-                                                 item: task, // The task associated with this drop target.
-                                                 tasks: $viewModel.tasks, // Binding to the tasks array.
-                                                 draggedItem: $draggedTask, // Binding to the currently dragged task.
-                                                 dropTargetInfo: $dropTargetInfo, // Binding to the drop target state.
-                                                 viewModel: viewModel // Reference to the view model for moving tasks.
-                                             ))
+                                // The view representing a single task row.
+                                TaskRowView(task: $task, viewModel: viewModel)
+                                    .environmentObject(settings) // Pass settings to row view
+                                    .padding(.vertical, AppStyle.rowPadding / 2)
+                                    // --- Drag Source ---
+                                    // Makes the TaskRowView draggable.
+                                    .onDrag {
+                                        self.draggedTask = task // Store the task being dragged.
+                                        self.dropTargetInfo = nil // Clear drop target when starting a new drag.
+                                        // Provide the task's ID as the draggable data.
+                                        return NSItemProvider(object: task.id.uuidString as NSString)
+                                    } preview: {
+                                        // Optional: Custom view shown while dragging.
+                                        TaskRowView(task: $task, viewModel: viewModel)
+                                            .environmentObject(settings)
+                                            .frame(width: AppStyle.listWidth)
+                                            .background(AppStyle.backgroundColor)
+                                    }
+                                    // --- Drop Target ---
+                                    // Makes the TaskRowView accept drops.
+                                    .onDrop(of: [UTType.taskItem, .plainText], // Accepts custom task type or plain text UUID.
+                                            delegate: TaskDropDelegate( // Uses a delegate to handle drop logic.
+                                                item: task, // The task associated with this drop target.
+                                                tasks: $viewModel.tasks, // Binding to the tasks array.
+                                                draggedItem: $draggedTask, // Binding to the currently dragged task.
+                                                dropTargetInfo: $dropTargetInfo, // Binding to the drop target state.
+                                                viewModel: viewModel // Reference to the view model for moving tasks.
+                                            ))
 
-                                 // --- Drop indicator BELOW the task row ---
-                                 // Visible only when dragging over the bottom half of the row.
-                                 Rectangle()
-                                     .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == false ? Color.accentColor : Color.clear)
-                                     .frame(height: 2)
-                                     .padding(.horizontal, 5) // Indent slightly
-                             }
-                         }
-                     }
-                     .padding(.top, 5) // Padding above the list content
-                 }
-                 .frame(maxHeight: .infinity) // Allow scrollview to take available space
-                 .scrollContentBackground(.hidden) // Make ScrollView background transparent if needed
-             }
+                                // --- Drop indicator BELOW the task row ---
+                                // Visible only when dragging over the bottom half of the row.
+                                Rectangle()
+                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == false ? AppStyle.accentColor : .clear)
+                                    .frame(height: 2)
+                                    .padding(.horizontal, AppStyle.rowPadding / 2)
+                            }
+                        }
+                    }
+                    .padding(.top, AppStyle.rowPadding)
+                }
+                .frame(maxHeight: .infinity) // Allow scrollview to take available space
+                .scrollContentBackground(.hidden) // Make ScrollView background transparent if needed
+            }
 
             // --- Footer Area ---
             // Visual separator above the footer buttons.
-            Divider().padding(.horizontal)
+            Divider().padding(.horizontal, AppStyle.rowPadding)
             // Horizontal stack for the action buttons at the bottom.
             HStack {
                 // Button to remove all completed tasks.
                 Button("Clear Completed") {
                     viewModel.removeCompletedTasks()
                 }
+                // Use AppStyle and settings for consistent font and padding.
+                .font(.system(size: settings.fontSize))
+                .padding(.vertical, AppStyle.buttonVerticalPadding)
+                .padding(.horizontal, AppStyle.buttonHorizontalPadding)
                 // Disabled if there are no completed tasks.
                 .disabled(viewModel.tasks.filter { $0.isCompleted }.isEmpty)
                 .accessibilityIdentifier("clearCompletedButton")
@@ -250,16 +258,20 @@ struct TaskListView: View {
                 Button("Clear All") {
                     showingClearAlert = true // Shows the confirmation alert.
                 }
+                // Use AppStyle and settings for consistent font and padding.
+                .font(.system(size: settings.fontSize))
+                .padding(.vertical, AppStyle.buttonVerticalPadding)
+                .padding(.horizontal, AppStyle.buttonHorizontalPadding)
                 // Disabled if the task list is empty.
                 .disabled(viewModel.tasks.isEmpty)
-                .foregroundColor(.red) // Indicates a potentially destructive action.
+                .foregroundColor(AppStyle.destructiveColor)
                 .accessibilityIdentifier("clearAllButton")
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal)
+            .padding(.vertical, AppStyle.rowPadding)
+            .padding(.horizontal, AppStyle.rowPadding)
         }
-        .background(.clear) // Set the background for the entire view.
-        .frame(width: 300) // Define a fixed width for the view.
+        .background(AppStyle.backgroundColor)
+        .frame(width: AppStyle.listWidth)
         // --- Alert ---
         // Confirmation dialog for the "Clear All" action.
         .alert("Clear All Tasks?", isPresented: $showingClearAlert) {
@@ -273,15 +285,15 @@ struct TaskListView: View {
         // --- Global Drop Target ---
         // Handles drops that occur outside of any specific TaskRowView within the VStack.
         .onDrop(of: [UTType.taskItem, .plainText], isTargeted: nil) { providers in
-             print("Dropped outside valid area")
-             // Clear drag/drop state if the drop doesn't land on a valid row target.
-             DispatchQueue.main.async {
-                 self.dropTargetInfo = nil
-                 self.draggedTask = nil
-             }
-             // Indicate that the drop was handled (by clearing state), preventing propagation.
-             return true
-         }
+            print("Dropped outside valid area")
+            // Clear drag/drop state if the drop doesn't land on a valid row target.
+            DispatchQueue.main.async {
+                self.dropTargetInfo = nil
+                self.draggedTask = nil
+            }
+            // Indicate that the drop was handled (by clearing state), preventing propagation.
+            return true
+        }
     }
 }
 
@@ -290,6 +302,8 @@ struct TaskListView: View {
 struct AddTaskView: View {
     /// The view model that manages the task list and the new task title.
     @ObservedObject var viewModel: TaskViewModel
+    /// The global settings manager for font size, color theme, etc.
+    @EnvironmentObject var settings: SettingsManager
     /// Controls the focus state of the text field. True when the field is focused.
     @FocusState private var isInputActive: Bool
 
@@ -299,6 +313,7 @@ struct AddTaskView: View {
             // Text field for entering the new task title.
             TextField("Add a new task...", text: $viewModel.newTaskTitle)
                 .textFieldStyle(.plain) // Use plain style for a seamless look within the list context.
+                .font(.system(size: settings.fontSize))
                 .focused($isInputActive) // Bind the focus state to the isInputActive property.
                 .onSubmit(addTask) // Call addTask when the user presses Enter/Return.
                 .accessibilityIdentifier("newTaskTextField")
@@ -306,17 +321,20 @@ struct AddTaskView: View {
             // Button to trigger adding the task.
             Button(action: addTask) {
                 Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
+                    .font(.system(size: settings.fontSize))
+                    .padding(.vertical, AppStyle.buttonVerticalPadding)
+                    .padding(.horizontal, AppStyle.buttonHorizontalPadding)
             }
             .buttonStyle(PlainButtonStyle()) // Remove default button styling for a cleaner look.
             .disabled(viewModel.newTaskTitle.isEmpty) // Disable the button if the text field is empty.
         }
         .onAppear {
-             // Set focus to the text field automatically when the view appears.
-             // A slight delay might be necessary depending on view presentation timing (e.g., in a popover).
-             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                 isInputActive = true
-             }
-         }
+            // Set focus to the text field automatically when the view appears.
+            // A slight delay might be necessary depending on view presentation timing (e.g., in a popover).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isInputActive = true
+            }
+        }
     }
 
     /// Helper function called when the add button is tapped or the text field is submitted.
@@ -422,16 +440,18 @@ struct TaskDropDelegate: DropDelegate {
 
 // 6. Preview
 #Preview {
-    // Create a view model instance specifically for the preview
-    let previewViewModel = TaskViewModel()
-    // Populate with sample data for the preview
-    previewViewModel.tasks = [
-        Task(title: "Review Code", isCompleted: false),
-        Task(title: "Implement Feature X", isCompleted: true),
-        Task(title: "Write Unit Tests", isCompleted: false),
-        Task(title: "Deploy to Staging", isCompleted: false)
-    ]
-    // Return the view, passing the preview view model
+    let previewViewModel: TaskViewModel = {
+        let vm = TaskViewModel()
+        vm.tasks = [
+            Task(title: "Review Code", isCompleted: false),
+            Task(title: "Implement Feature X", isCompleted: true),
+            Task(title: "Write Unit Tests", isCompleted: false),
+            Task(title: "Deploy to Staging", isCompleted: false)
+        ]
+        return vm
+    }()
+
     return TaskListView(viewModel: previewViewModel)
-        .frame(width: 300) // Apply the expected frame for accurate layout
+        .environmentObject(SettingsManager.shared)
+        .frame(width: AppStyle.listWidth)
 }

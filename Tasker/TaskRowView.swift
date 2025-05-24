@@ -15,6 +15,8 @@ struct TaskRowView: View {
     @FocusState private var isTextFieldFocused: Bool
     /// The view model containing the business logic for task operations (toggle, delete).
     var viewModel: TaskViewModel
+    /// Access global settings for font size, etc.
+    @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
         HStack {
@@ -27,9 +29,9 @@ struct TaskRowView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 5)
                         // Border color changes based on completion status.
-                        .stroke(task.isCompleted ? Color.accentColor : Color.secondary, lineWidth: 2)
+                        .stroke(task.isCompleted ? AppStyle.accentColor : AppStyle.secondaryTextColor, lineWidth: 2)
                         // Fill color changes based on completion status.
-                        .fill(task.isCompleted ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.2))
+                        .fill(task.isCompleted ? AppStyle.accentColor.opacity(0.2) : AppStyle.secondaryTextColor.opacity(0.2))
                 }
                 .frame(width: 12, height: 12) // Fixed size for the checkbox.
                 .contentShape(Rectangle()) // Ensures the tap area covers the frame.
@@ -41,11 +43,12 @@ struct TaskRowView: View {
             if isEditing {
                 TextField("Edit task", text: $task.title)
                     .textFieldStyle(.plain)
-                    .padding(.vertical, 2) // Add padding inside
+                    .font(.system(size: settings.fontSize))
+                    .padding(.vertical, 2)
                     .padding(.horizontal, 4)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.accentColor.opacity(0.1))
+                            .fill(AppStyle.accentColor.opacity(0.1))
                     )
                     .focused($isTextFieldFocused)
                     .onSubmit { // Triggered on Enter/Return key
@@ -62,8 +65,10 @@ struct TaskRowView: View {
 
             } else {
                 Text(task.title)
+                    .font(.system(size: settings.fontSize))
                     // Apply strikethrough effect if the task is completed.
                     .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? AppStyle.secondaryTextColor : .primary)
                     .accessibilityIdentifier("taskRowTitle_\(task.id)")
                     // Allow double-click to edit
                     .onTapGesture(count: 2) {
@@ -81,7 +86,7 @@ struct TaskRowView: View {
                     viewModel.deleteTask(task: task)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray) // Style the delete icon.
+                        .foregroundColor(AppStyle.secondaryTextColor)
                 }
                 .buttonStyle(PlainButtonStyle()) // Removes default button styling.
                 // Apply a fade transition when the button appears/disappears.
@@ -92,7 +97,7 @@ struct TaskRowView: View {
         // Ensure the HStack takes the full available width.
         .frame(maxWidth: .infinity, alignment: .leading)
         // Add horizontal padding to the row content.
-        .padding(.horizontal)
+        .padding(.horizontal, AppStyle.rowPadding)
         // Make the entire HStack area responsive to hover events.
         .contentShape(Rectangle())
         // Detect hover state changes.

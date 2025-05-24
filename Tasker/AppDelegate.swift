@@ -18,32 +18,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Stores Combine subscriptions to manage their lifecycle.
     private var cancellables = Set<AnyCancellable>()
     /// Hosts the SwiftUI `TaskListView` within the AppKit popover.
-    private var hostingController: NSHostingController<TaskListView>?
+    private var hostingController: NSHostingController<AnyView>?
     /// Handles bug reporting presentation and logic.
-    private let bugReporter = BugReporter() // <<< Add BugReporter instance
-
-    // MARK: - UI Constants (Estimated Heights for Popover Sizing)
-    // ... (keep existing constants)
-    let inputAreaHeight: CGFloat = 45
-    let dividerHeight: CGFloat = 1
-    let listTopPadding: CGFloat = 5
-    let taskRowHeight: CGFloat = 21
-    let footerHeight: CGFloat = 40
-    let emptyStateHeight: CGFloat = 60
-    let desiredWidth: CGFloat = 300
-
+    private let bugReporter = BugReporter()
 
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // ... (keep existing setup code for content view, hosting controller, popover, status item)
+        // --- Setup the main content view and hosting controller ---
         let contentView = TaskListView(viewModel: taskViewModel)
+            .environmentObject(SettingsManager.shared)
         let initialSize = calculatePopoverSize(taskCount: taskViewModel.tasks.count)
-        self.hostingController = NSHostingController(rootView: contentView)
+        self.hostingController = NSHostingController(rootView: AnyView(contentView))
         self.hostingController?.view.frame.size = initialSize
         self.hostingController?.view.wantsLayer = true
         self.hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor
 
+        // --- Setup the popover ---
         popover = NSPopover()
         popover.contentSize = initialSize
         popover.contentViewController = hostingController
@@ -51,6 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .vibrantDark)
 
+        // --- Setup the status item (menu bar icon) ---
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(named: "menuBarIcon")
@@ -59,20 +51,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
-
-        // Configure the right-click menu.
+        // --- Setup the right-click context menu ---
         menu = NSMenu()
         menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
 
         // *** Create the Report Bug menu item and set its identifier ***
         let reportBugMenuItem = NSMenuItem(title: "Report Bug...", action: #selector(showBugReportDialog(_:)), keyEquivalent: "")
         reportBugMenuItem.setAccessibilityIdentifier("reportBugButton") // Match UI test identifier
-        menu.addItem(reportBugMenuItem) // Add the configured item
+        menu.addItem(reportBugMenuItem)
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
-        // ... (keep existing subscription and activation policy code)
+        // --- Observe changes to the task list and update popover size accordingly ---
         taskViewModel.$tasks
             .debounce(for: .milliseconds(50), scheduler: DispatchQueue.main)
             .sink { [weak self] tasks in
@@ -81,6 +72,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        // --- Observe changes to font size and update popover size dynamically ---
+        SettingsManager.shared.$fontSize
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.updatePopoverSize(taskCount: self.taskViewModel.tasks.count, animate: true)
+            }
+            .store(in: &cancellables)
+
+        // --- Set activation policy after a short delay (for menu bar app behavior) ---
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             NSApp.setActivationPolicy(.accessory)
         }
@@ -90,7 +90,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Toggles the popover's visibility or shows the context menu based on the click type.
     @objc func togglePopover(_ sender: AnyObject?) {
-        // ... (keep existing togglePopover code)
         guard let button = statusItem.button else { return }
         guard let event = NSApp.currentEvent else { return }
 
@@ -113,7 +112,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Displays the standard "About" panel for the application.
     @objc func showAboutPanel(_ sender: Any?) {
-        // ... (keep existing showAboutPanel code)
         if popover.isShown {
             popover.performClose(sender)
         }
@@ -152,28 +150,52 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Popover Size Calculation & Update
-    // ... (keep existing calculatePopoverSize and updatePopoverSize methods)
+
+    /// Calculates the appropriate popover size based on the number of tasks and current style settings.
     func calculatePopoverSize(taskCount: Int) -> NSSize {
-        var calculatedHeight: CGFloat = 0
+        let inputAreaHeight = AppStyle.inputAreaHeight
+        let dividerHeight = AppStyle.dividerHeight
+        let listTopPadding = AppStyle.rowPadding
+        let taskRowHeight = AppStyle.taskRowHeight
+        let rowVerticalPadding = AppStyle.rowPadding / 2
+        let footerHeight = AppStyle.footerHeight
+        let emptyStateHeight = AppStyle.emptyStateHeight
+        let desiredWidth = AppStyle.listWidth
+
         let baseHeight = inputAreaHeight + dividerHeight + dividerHeight + footerHeight
 
+        // Add extra height for 1-5+ tasks for better visual balance
+        let extraHeightForFewTasks: CGFloat
+        switch taskCount {
+        case 1, 2:
+            extraHeightForFewTasks = taskRowHeight + AppStyle.rowPadding
+        case 3:
+            extraHeightForFewTasks = AppStyle.rowPadding * 1.5
+        case 4...:
+            extraHeightForFewTasks = AppStyle.rowPadding * 2.2
+        default:
+            extraHeightForFewTasks = 0
+        }
+
+        let calculatedHeight: CGFloat
         if taskCount == 0 {
             calculatedHeight = baseHeight + emptyStateHeight
         } else {
-            let listHeight = listTopPadding + (CGFloat(taskCount) * taskRowHeight)
-            calculatedHeight = baseHeight + listHeight
+            let visibleTaskCount = min(taskCount, 5)
+            let listHeight = listTopPadding + (CGFloat(visibleTaskCount) * (taskRowHeight + rowVerticalPadding * 2))
+            calculatedHeight = baseHeight + listHeight + extraHeightForFewTasks
         }
 
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 700
         let maxHeight = screenHeight - 50
         let finalHeight = min(calculatedHeight, maxHeight)
-
         let minHeight: CGFloat = 110
         let clampedHeight = max(finalHeight, minHeight)
 
         return NSSize(width: desiredWidth, height: clampedHeight)
     }
 
+    /// Updates the popover size, optionally animating the change.
     private func updatePopoverSize(taskCount: Int, animate: Bool = true) {
         guard let popover = popover, let hc = hostingController else { return }
 
