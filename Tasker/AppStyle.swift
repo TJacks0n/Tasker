@@ -10,7 +10,7 @@ import SwiftUI
 struct AppStyle {
     // Padding and sizing
     static var rowPadding: CGFloat { SettingsManager.shared.fontSize * 0.7 }
-    static var defaultFontSize: CGFloat { 15 }
+    static var defaultFontSize: CGFloat { 12 }
     static var listWidth: CGFloat { SettingsManager.shared.fontSize * 24 }
     static var inputAreaHeight: CGFloat { SettingsManager.shared.fontSize * 2.7 }
     static var dividerHeight: CGFloat { 1 }
