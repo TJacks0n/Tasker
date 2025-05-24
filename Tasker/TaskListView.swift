@@ -1,12 +1,12 @@
-// In TaskListView.swift
+// TaskListView.swift
 import SwiftUI
 import Combine
-import AppKit // Needed for NSApplication
-import UniformTypeIdentifiers // <<< Import for UTIs
+import AppKit
+import UniformTypeIdentifiers
 
 // Define a UTI for dragging tasks
 extension UTType {
-    static let taskItem = UTType(exportedAs: "com.github.TJacks0n.Tasker") // Replace with your identifier
+    static let taskItem = UTType(exportedAs: "com.github.TJacks0n.Tasker")
 }
 
 // 1. Task Data Model
@@ -141,8 +141,6 @@ class TaskViewModel: ObservableObject {
 struct TaskListView: View {
     /// The view model containing the task data and logic. Observed for changes.
     @ObservedObject var viewModel: TaskViewModel
-    /// The global settings manager for font size, color theme, etc.
-    @EnvironmentObject var settings: SettingsManager
     /// State variable to control the presentation of the "Clear All" confirmation alert.
     @State private var showingClearAlert = false
     /// State variable to hold the `Task` currently being dragged (if any).
@@ -170,7 +168,7 @@ struct TaskListView: View {
                 // Message shown when there are no tasks.
                 Text("No tasks yet!")
                     .foregroundColor(AppStyle.secondaryTextColor)
-                    .font(.system(size: settings.fontSize))
+                    .font(.system(size: AppStyle.defaultFontSize))
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .center)
                     .frame(height: AppStyle.emptyStateHeight)
@@ -193,7 +191,6 @@ struct TaskListView: View {
 
                                 // The view representing a single task row.
                                 TaskRowView(task: $task, viewModel: viewModel)
-                                    .environmentObject(settings) // Pass settings to row view
                                     .padding(.vertical, AppStyle.rowPadding / 2)
                                     // --- Drag Source ---
                                     // Makes the TaskRowView draggable.
@@ -205,7 +202,6 @@ struct TaskListView: View {
                                     } preview: {
                                         // Optional: Custom view shown while dragging.
                                         TaskRowView(task: $task, viewModel: viewModel)
-                                            .environmentObject(settings)
                                             .frame(width: AppStyle.listWidth)
                                             .background(AppStyle.backgroundColor)
                                     }
@@ -244,8 +240,8 @@ struct TaskListView: View {
                 Button("Clear Completed") {
                     viewModel.removeCompletedTasks()
                 }
-                // Use AppStyle and settings for consistent font and padding.
-                .font(.system(size: settings.fontSize))
+                // Use AppStyle for consistent font and padding.
+                .font(.system(size: AppStyle.defaultFontSize))
                 .padding(.vertical, AppStyle.buttonVerticalPadding)
                 .padding(.horizontal, AppStyle.buttonHorizontalPadding)
                 // Disabled if there are no completed tasks.
@@ -258,8 +254,8 @@ struct TaskListView: View {
                 Button("Clear All") {
                     showingClearAlert = true // Shows the confirmation alert.
                 }
-                // Use AppStyle and settings for consistent font and padding.
-                .font(.system(size: settings.fontSize))
+                // Use AppStyle for consistent font and padding.
+                .font(.system(size: AppStyle.defaultFontSize))
                 .padding(.vertical, AppStyle.buttonVerticalPadding)
                 .padding(.horizontal, AppStyle.buttonHorizontalPadding)
                 // Disabled if the task list is empty.
@@ -302,8 +298,6 @@ struct TaskListView: View {
 struct AddTaskView: View {
     /// The view model that manages the task list and the new task title.
     @ObservedObject var viewModel: TaskViewModel
-    /// The global settings manager for font size, color theme, etc.
-    @EnvironmentObject var settings: SettingsManager
     /// Controls the focus state of the text field. True when the field is focused.
     @FocusState private var isInputActive: Bool
 
@@ -313,7 +307,7 @@ struct AddTaskView: View {
             // Text field for entering the new task title.
             TextField("Add a new task...", text: $viewModel.newTaskTitle)
                 .textFieldStyle(.plain) // Use plain style for a seamless look within the list context.
-                .font(.system(size: settings.fontSize))
+                .font(.system(size: AppStyle.defaultFontSize))
                 .focused($isInputActive) // Bind the focus state to the isInputActive property.
                 .onSubmit(addTask) // Call addTask when the user presses Enter/Return.
                 .accessibilityIdentifier("newTaskTextField")
@@ -321,7 +315,7 @@ struct AddTaskView: View {
             // Button to trigger adding the task.
             Button(action: addTask) {
                 Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
-                    .font(.system(size: settings.fontSize))
+                    .font(.system(size: AppStyle.defaultFontSize))
                     .padding(.vertical, AppStyle.buttonVerticalPadding)
                     .padding(.horizontal, AppStyle.buttonHorizontalPadding)
             }
@@ -365,7 +359,7 @@ struct TaskDropDelegate: DropDelegate {
     @Binding var dropTargetInfo: (id: UUID, above: Bool)?
     /// A reference to the `TaskViewModel` to call the `moveTask` function for reordering.
     var viewModel: TaskViewModel
-
+    
     /// Called repeatedly while a dragged item is over the delegate's view.
     /// Determines the drop position (above/below the `item`) based on the cursor's location
     /// and updates the shared `dropTargetInfo` state to provide visual feedback (the drop indicator line).
@@ -377,16 +371,16 @@ struct TaskDropDelegate: DropDelegate {
         // Approximation: Assume drop is above if y-coordinate is less than a threshold (e.g., 10).
         // A more precise method might involve GeometryReader in the TaskRowView.
         let isAbove = dropLocation.y < 10 // Adjust this threshold based on row padding/height.
-
+        
         // Update the shared state on the main thread for UI updates.
         DispatchQueue.main.async {
             self.dropTargetInfo = (item.id, isAbove)
         }
-
+        
         // Propose a 'move' operation.
         return DropProposal(operation: .move)
     }
-
+    
     /// Called when the dragged item exits the bounds of the delegate's view.
     /// Clears the `dropTargetInfo` if it was previously set for this specific `item`.
     /// - Parameter info: Contains information about the drag operation.
@@ -398,7 +392,7 @@ struct TaskDropDelegate: DropDelegate {
             }
         }
     }
-
+    
     /// Called when the user releases the dragged item over the delegate's view.
     /// Performs the actual reordering of the task list.
     /// - Parameter info: Contains information about the drop operation.
@@ -414,44 +408,17 @@ struct TaskDropDelegate: DropDelegate {
             self.draggedItem = nil
             return false
         }
-
+        
         // Prevent dropping an item onto itself (though moveTask also checks).
         if draggedItem.id != item.id {
             print("Moving task \(draggedItem.title) \(currentTargetInfo.above ? "above" : "below") \(item.title)")
             // Call the view model's function to move the task, using the 'above' flag from the state.
             viewModel.moveTask(sourceID: draggedItem.id, targetID: item.id, moveAbove: currentTargetInfo.above)
         }
-
+        
         // Clear the drag/drop states after a successful or self-drop.
         self.dropTargetInfo = nil
         self.draggedItem = nil
         return true
     }
-
-    /// Called first to determine if the delegate's view can accept the drop.
-    /// Checks if the dragged item conforms to the expected `UTType.taskItem`.
-    /// - Parameter info: Contains information about the drag operation, including the item types.
-    /// - Returns: `true` if the dragged item is a valid `Task`, `false` otherwise.
-    func validateDrop(info: DropInfo) -> Bool {
-        // Allow the drop only if the dragged item conforms to our custom task UTI.
-        return info.hasItemsConforming(to: [UTType.taskItem])
-    }
-}
-
-// 6. Preview
-#Preview {
-    let previewViewModel: TaskViewModel = {
-        let vm = TaskViewModel()
-        vm.tasks = [
-            Task(title: "Review Code", isCompleted: false),
-            Task(title: "Implement Feature X", isCompleted: true),
-            Task(title: "Write Unit Tests", isCompleted: false),
-            Task(title: "Deploy to Staging", isCompleted: false)
-        ]
-        return vm
-    }()
-
-    return TaskListView(viewModel: previewViewModel)
-        .environmentObject(SettingsManager.shared)
-        .frame(width: AppStyle.listWidth)
 }

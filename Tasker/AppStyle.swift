@@ -21,16 +21,25 @@ struct AppStyle {
     static var buttonHorizontalPadding: CGFloat { SettingsManager.shared.fontSize * 0.7 }
 
     // Colors
-    static let backgroundColor: Color = Color(NSColor.windowBackgroundColor)
+    static let backgroundColor: Color = .clear
     static let accentColor: Color = .accentColor
     static let secondaryTextColor: Color = Color.secondary
     static let destructiveColor: Color = .red
+}
+
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
 }
 
 final class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
     @Published var fontSize: CGFloat = AppStyle.defaultFontSize
     @Published var colorScheme: ColorScheme = .light
+    @Published var theme: AppTheme = .system
     // Add more settings as needed
 
     private init() {}

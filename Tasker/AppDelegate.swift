@@ -41,7 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController?.view.setAccessibilityIdentifier("TaskerPopoverWindow")
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .vibrantDark)
-
+        
         // --- Setup the status item (menu bar icon) ---
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
