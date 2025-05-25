@@ -4,10 +4,8 @@ import SwiftUI
 /// Allows toggling completion status, deleting the task, and editing the task title.
 struct TaskRowView: View {
     /// A binding to the `Task` object this row represents.
-    /// Changes made here (like completion status or title) will reflect in the source.
     @Binding var task: Task
     /// State variable to track whether the mouse pointer is hovering over the row.
-    /// Used to conditionally show the delete button.
     @State private var isHovering = false
     /// State variable to track if the task title is currently being edited.
     @State private var isEditing = false
@@ -15,102 +13,95 @@ struct TaskRowView: View {
     @FocusState private var isTextFieldFocused: Bool
     /// The view model containing the business logic for task operations (toggle, delete).
     var viewModel: TaskViewModel
+    /// Access global settings for font size, etc.
+    @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
         HStack {
             // MARK: - Checkbox Button
             Button {
-                // Action to toggle the task's completion status via the view model.
+                // Toggle the task's completion status via the view model.
                 viewModel.toggleTaskCompletion(task: task)
             } label: {
-                // Custom checkbox appearance.
                 ZStack {
                     RoundedRectangle(cornerRadius: 5)
-                        // Border color changes based on completion status.
-                        .stroke(task.isCompleted ? Color.accentColor : Color.secondary, lineWidth: 2)
-                        // Fill color changes based on completion status.
-                        .fill(task.isCompleted ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.2))
+                        .stroke(task.isCompleted ? AppStyle.accentColor : AppStyle.secondaryTextColor, lineWidth: 2)
+                        .fill(task.isCompleted ? AppStyle.accentColor.opacity(0.2) : AppStyle.secondaryTextColor.opacity(0.2))
                 }
-                .frame(width: 12, height: 12) // Fixed size for the checkbox.
-                .contentShape(Rectangle()) // Ensures the tap area covers the frame.
+                .frame(width: settings.fontSize * 0.92, height: settings.fontSize * 0.92)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(PlainButtonStyle()) // Removes default button styling for a cleaner look.
+            .buttonStyle(PlainButtonStyle())
             .accessibilityIdentifier("taskRowCheckbox_\(task.id)")
-            
+
             // MARK: - Task Title / Edit Field
             if isEditing {
-                TextField("Edit task", text: $task.title)
-                    .textFieldStyle(.plain)
-                    .padding(.vertical, 2) // Add padding inside
+                // Show editable text field when editing
+                AccentColorTextField(text: $task.title)
+                    .frame(height: settings.fontSize + 6)
+                    .font(.system(size: settings.fontSize))
+                    .padding(.vertical, 2)
                     .padding(.horizontal, 4)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.accentColor.opacity(0.1))
+                            .fill(AppStyle.accentColor.opacity(0.1))
                     )
                     .focused($isTextFieldFocused)
-                    .onSubmit { // Triggered on Enter/Return key
-                        endEditing()
-                    }
-                    // Detect when focus is lost from the text field
+                    .onSubmit { endEditing() }
                     .onChange(of: isTextFieldFocused) { oldValue, newValue in
-                        // End editing if the text field is no longer focused
-                        if !newValue {
-                            endEditing()
-                        }
+                        if !newValue { endEditing() }
                     }
                     .accessibilityIdentifier("taskRowEditField_\(task.id)")
-
+                // Confirm / close button when editing
+                Button(action: { endEditing() }) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: settings.fontSize * 0.92))
+                        .foregroundColor(AppStyle.accentColor)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityIdentifier("taskRowEditConfirmButton_\(task.id)")
             } else {
+                // Show static text when not editing
                 Text(task.title)
-                    // Apply strikethrough effect if the task is completed.
+                    .font(.system(size: settings.fontSize))
                     .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? AppStyle.secondaryTextColor : .primary)
                     .accessibilityIdentifier("taskRowTitle_\(task.id)")
-                    // Allow double-click to edit
-                    .onTapGesture(count: 2) {
-                        startEditing()
-                    }
+                    .onTapGesture(count: 2) { startEditing() }
             }
 
-            Spacer() // Pushes the delete button to the far right.
+            Spacer()
 
             // MARK: - Delete Button (Conditional)
-            // Only show the delete button when the mouse is hovering over the row.
-            if isHovering {
+            // Only show the delete button when hovering and not editing
+            if isHovering && !isEditing {
                 Button {
-                    // Action to delete the task via the view model.
                     viewModel.deleteTask(task: task)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray) // Style the delete icon.
+                        .font(.system(size: settings.fontSize * 0.92))
+                        .foregroundColor(AppStyle.secondaryTextColor)
                 }
-                .buttonStyle(PlainButtonStyle()) // Removes default button styling.
-                // Apply a fade transition when the button appears/disappears.
+                .buttonStyle(PlainButtonStyle())
                 .transition(.opacity.animation(.easeInOut(duration: 0.1)))
                 .accessibilityIdentifier("taskRowDeleteButton_\(task.id)")
             }
         }
-        // Ensure the HStack takes the full available width.
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Add horizontal padding to the row content.
-        .padding(.horizontal)
-        // Make the entire HStack area responsive to hover events.
+        .padding(.horizontal, AppStyle.rowPadding)
         .contentShape(Rectangle())
-        // Detect hover state changes.
         .onHover { hovering in
-            // Animate the change in hover state for a smoother appearance/disappearance
-            // of the delete button.
             withAnimation(.easeInOut(duration: 0.1)) {
                 isHovering = hovering
             }
         }
-        .accessibilityElement(children: .contain) // Group elements for accessibility
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("taskRow_\(task.id)")
     }
-    
+
     /// Switches the view to editing mode and focuses the text field.
     private func startEditing() {
         isEditing = true
-        // Delay focusing slightly to ensure the TextField is rendered.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             isTextFieldFocused = true
         }
@@ -118,10 +109,9 @@ struct TaskRowView: View {
 
     /// Switches the view out of editing mode.
     private func endEditing() {
-        // Trim whitespace from the edited title before saving
         task.title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // If trimming results in an empty title, consider deleting or reverting (optional)
-        // For now, just exit edit mode. An empty title might be valid.
-        isEditing = false
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0)) {
+            isEditing = false
+        }
     }
 }
