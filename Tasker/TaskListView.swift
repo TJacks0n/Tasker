@@ -99,7 +99,9 @@ class TaskViewModel: ObservableObject {
     ///
     /// This typically does not require animation if the containing view (e.g., popover) handles resizing.
     func clearList() {
-        tasks.removeAll()
+        withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
+            tasks.removeAll()
+        }
     }
 
     /// Moves a task from a source position to a target position within the list.
@@ -192,6 +194,7 @@ struct TaskListView: View {
                                 // The view representing a single task row.
                                 TaskRowView(task: $task, viewModel: viewModel)
                                     .padding(.vertical, AppStyle.rowPadding / 2)
+                                    .transition(.scale.combined(with: .opacity)) // Animate appearance/disappearance
                                     // --- Drag Source ---
                                     // Makes the TaskRowView draggable.
                                     .onDrag {
@@ -333,10 +336,15 @@ struct AddTaskView: View {
 
     /// Helper function called when the add button is tapped or the text field is submitted.
     /// It delegates the actual task addition logic to the view model.
-    private func addTask() {
-        viewModel.addTask()
-        // Optional: Uncomment the line below if you want the text field to remain focused after adding a task.
-        //isInputActive = true
+    func addTask() {
+        let trimmedTitle = viewModel.newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+
+        let newTask = Task(title: trimmedTitle)
+        withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
+            viewModel.tasks.append(newTask)
+        }
+        viewModel.newTaskTitle = ""
     }
 }
 

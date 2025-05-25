@@ -205,7 +205,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.contentSize != newSize {
             if animate && popover.isShown {
                 NSAnimationContext.runAnimationGroup({ context in
-                    context.duration = 0.15
+                    context.duration = 0.35
+                    context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                     context.allowsImplicitAnimation = true
                     popover.contentSize = newSize
                 }, completionHandler: nil)

@@ -52,6 +52,14 @@ struct TaskRowView: View {
                         if !newValue { endEditing() }
                     }
                     .accessibilityIdentifier("taskRowEditField_\(task.id)")
+                // Confirm / close button when editing
+                Button(action: { endEditing() }) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: settings.fontSize * 0.92))
+                        .foregroundColor(AppStyle.accentColor)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityIdentifier("taskRowEditConfirmButton_\(task.id)")
             } else {
                 // Show static text when not editing
                 Text(task.title)
@@ -102,6 +110,8 @@ struct TaskRowView: View {
     /// Switches the view out of editing mode.
     private func endEditing() {
         task.title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        isEditing = false
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0)) {
+            isEditing = false
+        }
     }
 }
