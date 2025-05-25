@@ -319,6 +319,7 @@ struct AddTaskView: View {
             Button(action: addTask) {
                 Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
                     .font(.system(size: AppStyle.defaultFontSize))
+                    .foregroundColor(AppStyle.accentColor)
                     .padding(.vertical, AppStyle.buttonVerticalPadding)
                     .padding(.horizontal, AppStyle.buttonHorizontalPadding)
             }

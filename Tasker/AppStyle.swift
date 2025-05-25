@@ -22,7 +22,7 @@ struct AppStyle {
 
     // Colors
     static let backgroundColor: Color = .clear
-    static let accentColor: Color = .green
+    static let accentColor: Color = .indigo
     static let secondaryTextColor: Color = Color.secondary
     static let destructiveColor: Color = .red
 
