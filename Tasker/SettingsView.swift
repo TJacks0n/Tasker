@@ -26,14 +26,16 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     }
 }
 
-// Custom button style for category selection
+// Custom button style for category selection, now takes accentColor as a parameter
 struct CategoryButtonStyle: ButtonStyle {
     let isSelected: Bool
+    let accentColor: Color
 
     func makeBody(configuration: Configuration) -> some View {
         CategoryButton(
             configuration: configuration,
-            isSelected: isSelected
+            isSelected: isSelected,
+            accentColor: accentColor
         )
     }
 
@@ -41,6 +43,7 @@ struct CategoryButtonStyle: ButtonStyle {
     private struct CategoryButton: View {
         let configuration: Configuration
         let isSelected: Bool
+        let accentColor: Color
         @State private var isHovered = false
 
         // Scale effect for hover/press animation
@@ -58,11 +61,11 @@ struct CategoryButtonStyle: ButtonStyle {
         var backgroundColor: Color {
             if isSelected {
                 if configuration.isPressed {
-                    return AppStyle.accentColor.opacity(0.35)
+                    return accentColor.opacity(0.35)
                 } else if isHovered {
-                    return AppStyle.accentColor.opacity(0.22)
+                    return accentColor.opacity(0.22)
                 } else {
-                    return AppStyle.accentColor.opacity(0.15)
+                    return accentColor.opacity(0.15)
                 }
             } else {
                 if configuration.isPressed {
@@ -77,7 +80,7 @@ struct CategoryButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .foregroundColor(isSelected ? AppStyle.accentColor : .secondary)
+                .foregroundColor(isSelected ? accentColor : .secondary)
                 .padding(.vertical, AppStyle.buttonVerticalPadding)
                 .padding(.horizontal, AppStyle.buttonHorizontalPadding * 0.7)
                 .background(
@@ -105,6 +108,7 @@ struct CategoryButtonStyle: ButtonStyle {
 
 // Main settings view
 struct SettingsView: View {
+    @EnvironmentObject var settings: SettingsManager // Use EnvironmentObject for live updates
     @State private var selection: SettingsCategory = .general
 
     // Dynamically calculate button width based on label size
@@ -139,7 +143,8 @@ struct SettingsView: View {
                                 }
                                 .frame(width: buttonWidth)
                             }
-                            .buttonStyle(CategoryButtonStyle(isSelected: selection == category))
+                            // Pass settings.accentColor directly for reactivity
+                            .buttonStyle(CategoryButtonStyle(isSelected: selection == category, accentColor: settings.accentColor))
                         }
                     }
                     Spacer()

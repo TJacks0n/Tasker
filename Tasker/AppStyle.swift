@@ -1,4 +1,3 @@
-//
 //  AppStyle.swift
 //  Tasker
 //
@@ -22,14 +21,12 @@ struct AppStyle {
 
     // Colors
     static let backgroundColor: Color = .clear
-    static let accentColor: Color = .yellow
+    static var accentColor: Color { SettingsManager.shared.accentColor } // Now dynamic
     static let secondaryTextColor: Color = Color.secondary
     static let destructiveColor: Color = .red
 
     // AppKit-compatible accent color for cursor, etc.
     static var accentNSColor: NSColor {
-        // If you use asset colors, use the asset name here.
-        // Otherwise, match the SwiftUI color as closely as possible.
         NSColor(AppStyle.accentColor)
     }
 }
@@ -47,7 +44,7 @@ final class SettingsManager: ObservableObject {
     @Published var fontSize: CGFloat = AppStyle.defaultFontSize
     @Published var colorScheme: ColorScheme = .light
     @Published var theme: AppTheme = .system
-    // Add more settings as needed
+    @Published var accentColor: Color = .yellow // <-- Add this for dynamic accent color
 
     private init() {}
 }

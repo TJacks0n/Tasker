@@ -164,7 +164,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showSettingsWindow(_ sender: Any? = nil) {
         NSApp.activate(ignoringOtherApps: true)
         if settingsWindow == nil {
+            // Inject SettingsManager.shared as environment object for live updates
             let settingsView = SettingsView()
+                .environmentObject(SettingsManager.shared)
             let hostingController = NSHostingController(rootView: settingsView)
             let window = NSWindow(contentViewController: hostingController)
             window.title = "Tasker Settings"

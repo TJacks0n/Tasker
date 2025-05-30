@@ -150,6 +150,8 @@ struct TaskListView: View {
     /// State variable to track the potential drop target task's ID and whether the drop
     /// is intended for above or below that task. Used for visual feedback.
     @State private var dropTargetInfo: (id: UUID, above: Bool)? = nil
+    /// Inject settings for accent color reactivity
+    @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
         // Main vertical stack for the entire view content.
@@ -157,6 +159,7 @@ struct TaskListView: View {
             // --- Input Area ---
             // View containing the text field and button for adding new tasks.
             AddTaskView(viewModel: viewModel)
+                .environmentObject(settings)
                 .padding(.horizontal, AppStyle.rowPadding)
                 .padding(.top, AppStyle.rowPadding)
                 .padding(.bottom, AppStyle.rowPadding / 2)
@@ -187,7 +190,7 @@ struct TaskListView: View {
                                 // --- Drop indicator ABOVE the task row ---
                                 // Visible only when dragging over the top half of the row.
                                 Rectangle()
-                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == true ? AppStyle.accentColor : .clear)
+                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == true ? settings.accentColor : .clear)
                                     .frame(height: 2)
                                     .padding(.horizontal, AppStyle.rowPadding / 2)
 
@@ -222,7 +225,7 @@ struct TaskListView: View {
                                 // --- Drop indicator BELOW the task row ---
                                 // Visible only when dragging over the bottom half of the row.
                                 Rectangle()
-                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == false ? AppStyle.accentColor : .clear)
+                                    .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == false ? settings.accentColor : .clear)
                                     .frame(height: 2)
                                     .padding(.horizontal, AppStyle.rowPadding / 2)
                             }
@@ -303,6 +306,8 @@ struct AddTaskView: View {
     @ObservedObject var viewModel: TaskViewModel
     /// Controls the focus state of the text field. True when the field is focused.
     @FocusState private var isInputActive: Bool
+    /// Inject settings for accent color reactivity
+    @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
         // Horizontal stack for the text field and add button.
@@ -319,7 +324,7 @@ struct AddTaskView: View {
             Button(action: addTask) {
                 Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
                     .font(.system(size: AppStyle.defaultFontSize))
-                    .foregroundColor(AppStyle.accentColor)
+                    .foregroundColor(settings.accentColor) // <-- Use settings.accentColor for reactivity
                     .padding(.vertical, AppStyle.buttonVerticalPadding)
                     .padding(.horizontal, AppStyle.buttonHorizontalPadding)
             }

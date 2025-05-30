@@ -9,12 +9,13 @@ import SwiftUI
 
 struct AppearanceSettingsView: View {
     var body: some View {
-        VStack {
-            Spacer()
-            Text("Appearance Settings")
-                .font(.title3)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Accent Color:")
+                .font(.headline)
+            AccentColorPickerView()
+            // Add more appearance settings here
             Spacer()
         }
+        .padding()
     }
 }

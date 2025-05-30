@@ -7,6 +7,7 @@ struct TaskMenuBarApp: App {
     var body: some Scene {
         Settings {
             SettingsView()
+                .environmentObject(SettingsManager.shared) // Inject here
         }
     }
 }
