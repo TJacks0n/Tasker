@@ -85,12 +85,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E236819D2DE6EF1B00393C7E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		E27EDCF92DBAC451009F42B5 = {
 			isa = PBXGroup;
 			children = (
 				E27EDD042DBAC451009F42B5 /* Tasker */,
 				E27EDD132DBAC452009F42B5 /* TaskerTests */,
 				E27EDD1D2DBAC452009F42B5 /* TaskerUITests */,
+				E236819D2DE6EF1B00393C7E /* Frameworks */,
 				E27EDD032DBAC451009F42B5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -208,6 +216,8 @@
 			);
 			mainGroup = E27EDCF92DBAC451009F42B5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E27EDD032DBAC451009F42B5 /* Products */;
 			projectDirPath = "";

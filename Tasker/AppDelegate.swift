@@ -2,30 +2,24 @@ import Cocoa
 import SwiftUI
 import Combine
 
-/// Handles application-level events and manages the menu bar item (status item) and its associated popover.
+/// Handles application-level events and manages the menu bar item (status item) and its associated popovers.
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Properties
 
-    /// The popover window that displays the main task list UI.
     var popover: NSPopover!
-    /// The item displayed in the system menu bar.
     var statusItem: NSStatusItem!
-    /// The context menu shown on right-clicking the status item.
-    var menu: NSMenu!
-    /// The shared view model managing the task data and logic.
     var taskViewModel = TaskViewModel()
-    /// Stores Combine subscriptions to manage their lifecycle.
     private var cancellables = Set<AnyCancellable>()
-    /// Hosts the SwiftUI `TaskListView` within the AppKit popover.
     private var hostingController: NSHostingController<AnyView>?
-    /// Handles bug reporting presentation and logic.
     private let bugReporter = BugReporter()
+    private var settingsWindow: NSWindow?
+    private var menuPopover: NSPopover?
 
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // --- Setup the main content view and hosting controller ---
+        // Setup the main content view and hosting controller for the left-click popover
         let contentView = TaskListView(viewModel: taskViewModel)
             .environmentObject(SettingsManager.shared)
         let initialSize = calculatePopoverSize(taskCount: taskViewModel.tasks.count)
@@ -34,15 +28,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.hostingController?.view.wantsLayer = true
         self.hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor
 
-        // --- Setup the popover ---
+        // Setup the left-click popover
         popover = NSPopover()
         popover.contentSize = initialSize
         popover.contentViewController = hostingController
         popover.contentViewController?.view.setAccessibilityIdentifier("TaskerPopoverWindow")
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .vibrantDark)
-        
-        // --- Setup the status item (menu bar icon) ---
+
+        // Setup the status item (menu bar icon)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(named: "menuBarIcon")
@@ -51,19 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
-        // --- Setup the right-click context menu ---
-        menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "About Tasker", action: #selector(showAboutPanel(_:)), keyEquivalent: ""))
-
-        // *** Create the Report Bug menu item and set its identifier ***
-        let reportBugMenuItem = NSMenuItem(title: "Report Bug...", action: #selector(showBugReportDialog(_:)), keyEquivalent: "")
-        reportBugMenuItem.setAccessibilityIdentifier("reportBugButton") // Match UI test identifier
-        menu.addItem(reportBugMenuItem)
-
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit Tasker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-
-        // --- Observe changes to the task list and update popover size accordingly ---
+        // Observe changes to the task list and update popover size accordingly
         taskViewModel.$tasks
             .debounce(for: .milliseconds(50), scheduler: DispatchQueue.main)
             .sink { [weak self] tasks in
@@ -72,7 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        // --- Observe changes to font size and update popover size dynamically ---
+        // Observe changes to font size and update popover size dynamically
         SettingsManager.shared.$fontSize
             .sink { [weak self] _ in
                 guard let self = self else { return }
@@ -80,26 +62,51 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        // --- Set activation policy after a short delay (for menu bar app behavior) ---
+        // Set activation policy after a short delay (for menu bar app behavior)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             NSApp.setActivationPolicy(.accessory)
+        }
+
+        // Register Cmd + , shortcut for settings
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.modifierFlags.contains(.command) && event.characters == "," {
+                self?.showSettingsWindow()
+                return nil
+            }
+            return event
         }
     }
 
     // MARK: - Actions
 
-    /// Toggles the popover's visibility or shows the context menu based on the click type.
+    /// Toggles the popover's visibility or shows the SwiftUI menu popover on right-click.
     @objc func togglePopover(_ sender: AnyObject?) {
         guard let button = statusItem.button else { return }
         guard let event = NSApp.currentEvent else { return }
 
         if event.type == .rightMouseUp {
+            // Close any open popovers
             if popover.isShown {
                 popover.performClose(sender)
             }
+            if menuPopover?.isShown == true {
+                menuPopover?.performClose(sender)
+                return
+            }
+            // Show SwiftUI menu popover for right-click
+            let menuView = TaskerSwiftUIMenu()
+            let hostingController = NSHostingController(rootView: menuView)
+            let popover = NSPopover()
+            popover.contentViewController = hostingController
+            popover.behavior = .transient
+            popover.appearance = NSAppearance(named: .vibrantDark)
+            self.menuPopover = popover
             NSApp.activate(ignoringOtherApps: true)
-            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
         } else { // Left-click
+            if menuPopover?.isShown == true {
+                menuPopover?.performClose(sender)
+            }
             if popover.isShown {
                 popover.performClose(sender)
             } else {
@@ -114,6 +121,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAboutPanel(_ sender: Any?) {
         if popover.isShown {
             popover.performClose(sender)
+        }
+        if menuPopover?.isShown == true {
+            menuPopover?.performClose(sender)
         }
 
         let creditsURL = URL(string: "https://github.com/TJacks0n/Tasker")
@@ -141,17 +151,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Action method called by the menu item. Delegates to the BugReporter.
     @objc func showBugReportDialog(_ sender: Any?) {
-        // Close the main popover if it's open.
         if popover.isShown {
             popover.performClose(sender)
         }
-        // Call the method on the BugReporter instance
+        if menuPopover?.isShown == true {
+            menuPopover?.performClose(sender)
+        }
         bugReporter.showReportBugDialog()
+    }
+
+    /// Shows the settings window for all supported macOS versions.
+    @objc func showSettingsWindow(_ sender: Any? = nil) {
+        NSApp.activate(ignoringOtherApps: true) // Ensure app is frontmost
+        if settingsWindow == nil {
+            let settingsView = SettingsView()
+            let hostingController = NSHostingController(rootView: settingsView)
+            let window = NSWindow(contentViewController: hostingController)
+            window.title = "Settings"
+            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.setContentSize(NSSize(width: 400, height: 300))
+            window.center()
+            settingsWindow = window
+        }
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Popover Size Calculation & Update
 
-    /// Calculates the appropriate popover size based on the number of tasks and current style settings.
     func calculatePopoverSize(taskCount: Int) -> NSSize {
         let inputAreaHeight = AppStyle.inputAreaHeight
         let dividerHeight = AppStyle.dividerHeight
@@ -164,7 +190,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let baseHeight = inputAreaHeight + dividerHeight + dividerHeight + footerHeight
 
-        // Add extra height for 1-5+ tasks for better visual balance
         let extraHeightForFewTasks: CGFloat
         switch taskCount {
         case 1, 2:
@@ -195,7 +220,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return NSSize(width: desiredWidth, height: clampedHeight)
     }
 
-    /// Updates the popover size, optionally animating the change.
     private func updatePopoverSize(taskCount: Int, animate: Bool = true) {
         guard let popover = popover, let hc = hostingController else { return }
 
