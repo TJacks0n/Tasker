@@ -47,7 +47,7 @@ struct BugReporter {
 
         // Style the text view for translucency and rounded corners
         textView.drawsBackground = true // Need to draw background to show the color
-        textView.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.7) // Translucent background
+        textView.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.5) // Translucent background
         textView.insertionPointColor = NSColor.textColor // Ensure cursor is visible
         textView.wantsLayer = true // Enable layer for rounded corners
         textView.layer?.cornerRadius = 6.0 // Set corner radius

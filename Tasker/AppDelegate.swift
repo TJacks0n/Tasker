@@ -162,15 +162,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Shows the settings window for all supported macOS versions.
     @objc func showSettingsWindow(_ sender: Any? = nil) {
-        NSApp.activate(ignoringOtherApps: true) // Ensure app is frontmost
+        NSApp.activate(ignoringOtherApps: true)
         if settingsWindow == nil {
             let settingsView = SettingsView()
             let hostingController = NSHostingController(rootView: settingsView)
             let window = NSWindow(contentViewController: hostingController)
-            window.title = "Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 400, height: 300))
+            window.title = "Tasker Settings"
+            window.titleVisibility = .visible
+            window.titlebarAppearsTransparent = true
+            window.styleMask.insert(.fullSizeContentView)
+            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+            window.setContentSize(NSSize(width: 500, height: 320))
             window.center()
+            // Set window background to AppStyle (clear)
+            window.isOpaque = false
+            window.backgroundColor = NSColor.clear
+            window.contentView?.wantsLayer = true
+            window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
+            // Ensure the NSHostingController's view is also clear to allow frosted effect
+            hostingController.view.wantsLayer = true
+            hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
             settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
