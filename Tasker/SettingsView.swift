@@ -26,7 +26,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     }
 }
 
-// Custom button style for category selection, now takes accentColor as a parameter
+// Custom button style for category selection
 struct CategoryButtonStyle: ButtonStyle {
     let isSelected: Bool
     let accentColor: Color
@@ -106,9 +106,9 @@ struct CategoryButtonStyle: ButtonStyle {
     }
 }
 
-// Main settings view
+// Main settings view container
 struct SettingsView: View {
-    @EnvironmentObject var settings: SettingsManager // Use EnvironmentObject for live updates
+    @EnvironmentObject var settings: SettingsManager // For live updates
     @State private var selection: SettingsCategory = .general
 
     // Dynamically calculate button width based on label size
@@ -124,12 +124,12 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            // --- Semi-transparent background using controlBackgroundColor ---
-            // This matches the NSTextView translucency style.
+            // Semi-transparent background for frosted effect
             Color(NSColor.controlBackgroundColor.withAlphaComponent(0.7))
                 .ignoresSafeArea()
+            // Pin content to the top of the window
             VStack(spacing: 0) {
-                // Category selection bar
+                // --- Category selection bar ---
                 HStack {
                     Spacer()
                     HStack(spacing: 8) {
@@ -143,22 +143,22 @@ struct SettingsView: View {
                                 }
                                 .frame(width: buttonWidth)
                             }
-                            // Pass settings.accentColor directly for reactivity
                             .buttonStyle(CategoryButtonStyle(isSelected: selection == category, accentColor: settings.accentColor))
                         }
                     }
                     Spacer()
                 }
                 .padding(.horizontal, 0)
-                .padding(.top, 8)
+                .padding(.top, 8) // No extra top padding
                 .padding(.bottom, 6)
                 .background(Color.clear)
 
                 Divider()
 
-                // Main content area for selected settings category
+                // --- Main content area for selected settings category ---
                 ZStack {
                     Group {
+                        // Show the correct settings view for the selected category
                         switch selection {
                         case .general:
                             GeneralSettingsView()
@@ -172,12 +172,13 @@ struct SettingsView: View {
                             DataSettingsView()
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
                 }
                 .background(Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
+            // This frame pins the VStack to the top of the window
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .frame(width: 500, height: 320)
     }
