@@ -146,7 +146,6 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height:5)
             // --- Category selection bar ---
             HStack {
                 Spacer()
@@ -167,7 +166,8 @@ struct SettingsView: View {
                 }
                 Spacer()
             }
-            .padding(.top, 8)
+            // Top padding now gently increases with font size for better balance
+            .padding(.top, 6 + max(0, (settings.fontSize - 13)) * 0.7)
             .padding(.bottom, 6)
 
             Divider().frame(height: AppStyle.dividerHeight)
@@ -192,8 +192,8 @@ struct SettingsView: View {
         .font(.system(size: settings.fontSize))
         .preferredColorScheme(settings.theme == .system ? nil : effectiveColorScheme)
         // Do NOT set a background here; let AppDelegate/window control it.
-        // .background(Color.clear) // Optional: can be omitted, as clear is default
-        .frame(width: 500, height: 300) // Or your preferred size
+        // .background(Color.clear)
+        // .frame(width: 500, height: 300) // Window size is managed by AppDelegate
     }
 }
 

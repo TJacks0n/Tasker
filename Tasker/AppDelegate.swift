@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let bugReporter = BugReporter()
     private var settingsWindow: NSWindow?
     private var menuPopover: NSPopover?
+    private var settingsCancellable: AnyCancellable?
 
     // MARK: - Application Lifecycle
 
@@ -61,6 +62,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.updatePopoverSize(taskCount: self.taskViewModel.tasks.count, animate: true)
             }
             .store(in: &cancellables)
+
+        // Observe fontSize changes to resize settings window
+        settingsCancellable = SettingsManager.shared.$fontSize
+            .sink { [weak self] _ in
+                self?.resizeSettingsWindow()
+            }
 
         // Set activation policy after a short delay (for menu bar app behavior)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -164,13 +171,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         bugReporter.showReportBugDialog()
     }
 
+    /// Shows the settings window with a glass/blurred background and dynamic sizing.
+    /// The window height now grows gently with font size for better balance.
     @objc func showSettingsWindow(_ sender: Any? = nil) {
         NSApp.activate(ignoringOtherApps: true)
+        let settings = SettingsManager.shared
+
+        // --- Calculate dynamic width based on widest category button and minimum width ---
+        let minWidth: CGFloat = 400
+        let buttonBarWidth = SettingsCategory.allCases
+            .map { category in
+                let font = NSFont.systemFont(ofSize: settings.fontSize * 0.85, weight: .medium)
+                let labelWidth = category.title.size(withAttributes: [.font: font]).width
+                return labelWidth + settings.fontSize * 2.5 // icon + padding
+            }
+            .reduce(0, +) + CGFloat(SettingsCategory.allCases.count - 1) * 8 + 48 // spacing + side padding
+        let contentWidth = max(settings.listWidth, buttonBarWidth, minWidth) + 60
+
+        // --- Improved window height calculation ---
+        let baseHeight: CGFloat = 260
+        let extraPerPoint: CGFloat = 8
+        let windowHeight = baseHeight + max(0, (settings.fontSize - 13)) * extraPerPoint
+        let windowSize = NSSize(width: contentWidth, height: windowHeight)
+
         if settingsWindow == nil {
             // 1. Create the blur background view
-            let blurView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+            let blurView = NSVisualEffectView(frame: NSRect(origin: .zero, size: windowSize))
             blurView.blendingMode = .behindWindow
-            blurView.material = .sidebar // or .hudWindow, .popover, etc.
+            blurView.material = .sidebar
             blurView.state = .active
             blurView.autoresizingMask = [.width, .height]
 
@@ -186,7 +214,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             blurView.addSubview(hostingController.view)
 
             // 4. Create the window with the blur view as contentView
-            let window = NSWindow(contentRect: blurView.bounds,
+            let window = NSWindow(contentRect: NSRect(origin: .zero, size: windowSize),
                                   styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                                   backing: .buffered,
                                   defer: false)
@@ -200,11 +228,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             settingsWindow = window
         }
+        resizeSettingsWindow()
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// Resizes the settings window to match the current font size and width.
+    /// Uses the same height formula as showSettingsWindow for consistency.
+    private func resizeSettingsWindow() {
+        guard let window = settingsWindow else { return }
+        let settings = SettingsManager.shared
+
+        let minWidth: CGFloat = 400
+        let buttonBarWidth = SettingsCategory.allCases
+            .map { category in
+                let font = NSFont.systemFont(ofSize: settings.fontSize * 0.85, weight: .medium)
+                let labelWidth = category.title.size(withAttributes: [.font: font]).width
+                return labelWidth + settings.fontSize * 2.5
+            }
+            .reduce(0, +) + CGFloat(SettingsCategory.allCases.count - 1) * 8 + 48
+        let contentWidth = max(settings.listWidth, buttonBarWidth, minWidth) + 60
+
+        // --- Improved window height calculation ---
+        let baseHeight: CGFloat = 300
+        let extraPerPoint: CGFloat = 8
+        let windowHeight = baseHeight + max(0, (settings.fontSize - 13)) * extraPerPoint
+        let newSize = NSSize(width: contentWidth, height: windowHeight)
+
+        window.setContentSize(newSize)
+        if let blurView = window.contentView as? NSVisualEffectView {
+            blurView.frame = NSRect(origin: .zero, size: newSize)
+            if let hostingView = blurView.subviews.first {
+                hostingView.frame = blurView.bounds
+            }
+        }
     }
 
     // MARK: - Popover Size Calculation & Update
 
+    /// Calculates the popover size based on the number of tasks and current settings.
     func calculatePopoverSize(taskCount: Int) -> NSSize {
         let settings = SettingsManager.shared
         let inputAreaHeight = settings.inputAreaHeight
@@ -248,6 +309,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return NSSize(width: desiredWidth, height: clampedHeight)
     }
 
+    /// Updates the popover size, animating if requested.
     private func updatePopoverSize(taskCount: Int, animate: Bool = true) {
         guard let popover = popover, let hc = hostingController else { return }
 
