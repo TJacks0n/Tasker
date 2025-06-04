@@ -7,7 +7,7 @@
 import SwiftUI
 import AppKit
 
-// Enum for the different settings categories
+// Enum for the different settings categories, with per-category preferredHeight
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case general, startup, appearance, behavior, data
 
@@ -30,9 +30,19 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .data: return "tray.full"
         }
     }
+    // Preferred window height for each category
+    var preferredHeight: CGFloat {
+        switch self {
+        case .general: return 260
+        case .startup: return 260
+        case .appearance: return 380
+        case .behavior: return 260
+        case .data: return 260
+        }
+    }
 }
 
-// Custom button style for category selection
+// Custom button style for category selection bar
 struct CategoryButtonStyle: ButtonStyle {
     let isSelected: Bool
     let accentColor: Color
@@ -57,33 +67,21 @@ struct CategoryButtonStyle: ButtonStyle {
 
         // Scale effect for hover/press animation
         var scale: CGFloat {
-            if configuration.isPressed {
-                return 0.97
-            } else if isHovered {
-                return 1.07
-            } else {
-                return 1.0
-            }
+            if configuration.isPressed { return 0.97 }
+            else if isHovered { return 1.07 }
+            else { return 1.0 }
         }
 
         // Background color based on selection and interaction state
         var backgroundColor: Color {
             if isSelected {
-                if configuration.isPressed {
-                    return accentColor.opacity(0.35)
-                } else if isHovered {
-                    return accentColor.opacity(0.22)
-                } else {
-                    return accentColor.opacity(0.15)
-                }
+                if configuration.isPressed { return accentColor.opacity(0.35) }
+                else if isHovered { return accentColor.opacity(0.22) }
+                else { return accentColor.opacity(0.15) }
             } else {
-                if configuration.isPressed {
-                    return AppStyle.secondaryTextColor.opacity(0.18)
-                } else if isHovered {
-                    return AppStyle.secondaryTextColor.opacity(0.10)
-                } else {
-                    return Color.clear
-                }
+                if configuration.isPressed { return AppStyle.secondaryTextColor.opacity(0.18) }
+                else if isHovered { return AppStyle.secondaryTextColor.opacity(0.10) }
+                else { return Color.clear }
             }
         }
 
@@ -121,6 +119,9 @@ struct SettingsView: View {
     @State private var selection: SettingsCategory = .general
     @Environment(\.colorScheme) private var systemColorScheme
 
+    // Optional callback to notify AppDelegate of category changes (for window resizing)
+    var onCategoryChange: ((SettingsCategory) -> Void)? = nil
+
     // Helper to resolve the effective color scheme based on user selection
     private var effectiveColorScheme: ColorScheme {
         switch settings.theme {
@@ -151,7 +152,10 @@ struct SettingsView: View {
                 Spacer()
                 HStack(spacing: 8) {
                     ForEach(SettingsCategory.allCases) { category in
-                        Button(action: { selection = category }) {
+                        Button(action: {
+                            selection = category
+                            onCategoryChange?(category) // Notify AppDelegate for window height change
+                        }) {
                             VStack(spacing: 2) {
                                 Image(systemName: category.icon)
                                     .font(.system(size: settings.fontSize, weight: .semibold))
@@ -192,8 +196,6 @@ struct SettingsView: View {
         .font(.system(size: settings.fontSize))
         .preferredColorScheme(settings.theme == .system ? nil : effectiveColorScheme)
         // Do NOT set a background here; let AppDelegate/window control it.
-        // .background(Color.clear)
-        // .frame(width: 500, height: 300) // Window size is managed by AppDelegate
     }
 }
 

@@ -17,6 +17,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuPopover: NSPopover?
     private var settingsCancellable: AnyCancellable?
 
+    // Track the currently selected settings category for dynamic window height
+    private var currentSettingsCategory: SettingsCategory = .general
+
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -68,6 +71,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in
                 self?.resizeSettingsWindow()
             }
+
+        // Observe font size commit notification to always resize settings window
+        NotificationCenter.default.addObserver(
+            forName: .settingsFontSizeDidCommit,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.resizeSettingsWindow()
+        }
 
         // Set activation policy after a short delay (for menu bar app behavior)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -172,7 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Shows the settings window with a glass/blurred background and dynamic sizing.
-    /// The window height now grows gently with font size for better balance.
+    /// The window height now adapts to the selected settings category.
     @objc func showSettingsWindow(_ sender: Any? = nil) {
         NSApp.activate(ignoringOtherApps: true)
         let settings = SettingsManager.shared
@@ -188,8 +200,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .reduce(0, +) + CGFloat(SettingsCategory.allCases.count - 1) * 8 + 48 // spacing + side padding
         let contentWidth = max(settings.listWidth, buttonBarWidth, minWidth) + 60
 
-        // --- Improved window height calculation ---
-        let baseHeight: CGFloat = 260
+        // --- Use per-category base height ---
+        let baseHeight: CGFloat = currentSettingsCategory.preferredHeight
         let extraPerPoint: CGFloat = 8
         let windowHeight = baseHeight + max(0, (settings.fontSize - 13)) * extraPerPoint
         let windowSize = NSSize(width: contentWidth, height: windowHeight)
@@ -202,9 +214,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             blurView.state = .active
             blurView.autoresizingMask = [.width, .height]
 
-            // 2. Create the SwiftUI settings view
-            let settingsView = SettingsView()
-                .environmentObject(SettingsManager.shared)
+            // 2. Create the SwiftUI settings view, passing a closure to update the category
+            let settingsView = SettingsView(onCategoryChange: { [weak self] category in
+                self?.currentSettingsCategory = category
+                self?.resizeSettingsWindow()
+            })
+            .environmentObject(SettingsManager.shared)
             let hostingController = NSHostingController(rootView: settingsView)
             hostingController.view.frame = blurView.bounds
             hostingController.view.autoresizingMask = [.width, .height]
@@ -232,9 +247,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
-    /// Resizes the settings window to match the current font size and width.
-    /// Uses the same height formula as showSettingsWindow for consistency.
-    private func resizeSettingsWindow() {
+    /// Resizes the settings window to match the current font size, width, and selected category.
+    func resizeSettingsWindow() {
         guard let window = settingsWindow else { return }
         let settings = SettingsManager.shared
 
@@ -248,19 +262,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .reduce(0, +) + CGFloat(SettingsCategory.allCases.count - 1) * 8 + 48
         let contentWidth = max(settings.listWidth, buttonBarWidth, minWidth) + 60
 
-        // --- Improved window height calculation ---
-        let baseHeight: CGFloat = 300
+        // Use the preferred height for the current category
+        let baseHeight: CGFloat = currentSettingsCategory.preferredHeight
         let extraPerPoint: CGFloat = 8
         let windowHeight = baseHeight + max(0, (settings.fontSize - 13)) * extraPerPoint
         let newSize = NSSize(width: contentWidth, height: windowHeight)
 
-        window.setContentSize(newSize)
-        if let blurView = window.contentView as? NSVisualEffectView {
-            blurView.frame = NSRect(origin: .zero, size: newSize)
-            if let hostingView = blurView.subviews.first {
-                hostingView.frame = blurView.bounds
-            }
-        }
+        // Use a custom timing function for a "bouncy" feel (overshoot)
+        let bounceTiming = CAMediaTimingFunction(controlPoints: 0.34, 1.56, 0.64, 1)
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.55
+            context.timingFunction = bounceTiming
+            window.animator().setContentSize(newSize)
+            // Do NOT animate blurView or hostingView frames—let autoresizing handle it
+        }, completionHandler: nil)
     }
 
     // MARK: - Popover Size Calculation & Update
