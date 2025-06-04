@@ -1,3 +1,9 @@
+//  SettingsView.swift
+//  Tasker
+//
+//  Created by Thomas Jackson on 28/05/2025.
+//
+
 import SwiftUI
 import AppKit
 
@@ -30,6 +36,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 struct CategoryButtonStyle: ButtonStyle {
     let isSelected: Bool
     let accentColor: Color
+    @EnvironmentObject var settings: SettingsManager
 
     func makeBody(configuration: Configuration) -> some View {
         CategoryButton(
@@ -37,6 +44,7 @@ struct CategoryButtonStyle: ButtonStyle {
             isSelected: isSelected,
             accentColor: accentColor
         )
+        .environmentObject(settings)
     }
 
     // Inner view for button appearance and interaction
@@ -45,6 +53,7 @@ struct CategoryButtonStyle: ButtonStyle {
         let isSelected: Bool
         let accentColor: Color
         @State private var isHovered = false
+        @EnvironmentObject var settings: SettingsManager
 
         // Scale effect for hover/press animation
         var scale: CGFloat {
@@ -69,9 +78,9 @@ struct CategoryButtonStyle: ButtonStyle {
                 }
             } else {
                 if configuration.isPressed {
-                    return Color.secondary.opacity(0.18)
+                    return AppStyle.secondaryTextColor.opacity(0.18)
                 } else if isHovered {
-                    return Color.secondary.opacity(0.10)
+                    return AppStyle.secondaryTextColor.opacity(0.10)
                 } else {
                     return Color.clear
                 }
@@ -80,9 +89,9 @@ struct CategoryButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .foregroundColor(isSelected ? accentColor : .secondary)
-                .padding(.vertical, AppStyle.buttonVerticalPadding)
-                .padding(.horizontal, AppStyle.buttonHorizontalPadding * 0.7)
+                .foregroundColor(isSelected ? accentColor : AppStyle.secondaryTextColor)
+                .padding(.vertical, settings.buttonVerticalPadding)
+                .padding(.horizontal, settings.buttonHorizontalPadding * 0.7)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(backgroundColor)
@@ -108,79 +117,82 @@ struct CategoryButtonStyle: ButtonStyle {
 
 // Main settings view container
 struct SettingsView: View {
-    @EnvironmentObject var settings: SettingsManager // For live updates
+    @EnvironmentObject var settings: SettingsManager
     @State private var selection: SettingsCategory = .general
+    @Environment(\.colorScheme) private var systemColorScheme
 
-    // Dynamically calculate button width based on label size
+    // Helper to resolve the effective color scheme based on user selection
+    private var effectiveColorScheme: ColorScheme {
+        switch settings.theme {
+        case .system:
+            return systemColorScheme
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
+    }
+
+    // Dynamically calculate button width based on label size and dynamic padding
     private var buttonWidth: CGFloat {
-        let font = NSFont.systemFont(ofSize: AppStyle.defaultFontSize * 0.85, weight: .medium)
+        let font = NSFont.systemFont(ofSize: settings.fontSize * 0.85, weight: .medium)
         let maxLabelWidth = SettingsCategory.allCases
             .map { $0.title.size(withAttributes: [.font: font]).width }
             .max() ?? 60
         let iconWidth: CGFloat = 2
-        let horizontalPadding = AppStyle.buttonHorizontalPadding * 1.0
+        let horizontalPadding = settings.buttonHorizontalPadding * 1.0
         return maxLabelWidth + iconWidth + horizontalPadding
     }
 
     var body: some View {
-        ZStack {
-            // Semi-transparent background for frosted effect
-            Color(NSColor.controlBackgroundColor.withAlphaComponent(0.7))
-                .ignoresSafeArea()
-            // Pin content to the top of the window
-            VStack(spacing: 0) {
-                // --- Category selection bar ---
-                HStack {
-                    Spacer()
-                    HStack(spacing: 8) {
-                        ForEach(SettingsCategory.allCases) { category in
-                            Button(action: { selection = category }) {
-                                VStack(spacing: 2) {
-                                    Image(systemName: category.icon)
-                                        .font(.system(size: AppStyle.defaultFontSize, weight: .semibold))
-                                    Text(category.title)
-                                        .font(.system(size: AppStyle.defaultFontSize * 0.85, weight: .medium))
-                                }
-                                .frame(width: buttonWidth)
+        VStack(spacing: 0) {
+            // --- Category selection bar ---
+            HStack {
+                Spacer()
+                HStack(spacing: 8) {
+                    ForEach(SettingsCategory.allCases) { category in
+                        Button(action: { selection = category }) {
+                            VStack(spacing: 2) {
+                                Image(systemName: category.icon)
+                                    .font(.system(size: settings.fontSize, weight: .semibold))
+                                Text(category.title)
+                                    .font(.system(size: settings.fontSize * 0.85, weight: .medium))
                             }
-                            .buttonStyle(CategoryButtonStyle(isSelected: selection == category, accentColor: settings.accentColor))
+                            .frame(width: buttonWidth)
                         }
+                        .buttonStyle(CategoryButtonStyle(isSelected: selection == category, accentColor: settings.accentColor))
+                        .environmentObject(settings)
                     }
-                    Spacer()
                 }
-                .padding(.horizontal, 0)
-                .padding(.top, 8) // No extra top padding
-                .padding(.bottom, 6)
-                .background(Color.clear)
-
-                Divider()
-
-                // --- Main content area for selected settings category ---
-                ZStack {
-                    Group {
-                        // Show the correct settings view for the selected category
-                        switch selection {
-                        case .general:
-                            GeneralSettingsView()
-                        case .startup:
-                            StartupSettingsView()
-                        case .appearance:
-                            AppearanceSettingsView()
-                        case .behavior:
-                            BehaviorSettingsView()
-                        case .data:
-                            DataSettingsView()
-                        }
-                    }
-                    .padding()
-                }
-                .background(Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                Spacer()
             }
-            // This frame pins the VStack to the top of the window
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+
+            Divider().frame(height: AppStyle.dividerHeight)
+
+            // --- Main content area for selected settings category ---
+            Group {
+                switch selection {
+                case .general:
+                    GeneralSettingsView()
+                case .startup:
+                    StartupSettingsView()
+                case .appearance:
+                    AppearanceSettingsView()
+                case .behavior:
+                    BehaviorSettingsView()
+                case .data:
+                    DataSettingsView()
+                }
+            }
+            .padding()
         }
-        .frame(width: 500, height: 320)
+        .font(.system(size: settings.fontSize))
+        .preferredColorScheme(settings.theme == .system ? nil : effectiveColorScheme)
+        // Do NOT set a background here; let AppDelegate/window control it.
+        // .background(Color.clear) // Optional: can be omitted, as clear is default
+        .frame(width: 500, height: 300) // Or your preferred size
     }
 }
 

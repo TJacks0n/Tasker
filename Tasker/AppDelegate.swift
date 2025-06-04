@@ -95,6 +95,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             // Show SwiftUI menu popover for right-click
             let menuView = TaskerSwiftUIMenu()
+                .environmentObject(SettingsManager.shared)
             let hostingController = NSHostingController(rootView: menuView)
             let popover = NSPopover()
             popover.contentViewController = hostingController
@@ -160,30 +161,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         bugReporter.showReportBugDialog()
     }
 
-    /// Shows the settings window for all supported macOS versions.
     @objc func showSettingsWindow(_ sender: Any? = nil) {
         NSApp.activate(ignoringOtherApps: true)
         if settingsWindow == nil {
-            // Inject SettingsManager.shared as environment object for live updates
+            // Create the settings SwiftUI view
             let settingsView = SettingsView()
                 .environmentObject(SettingsManager.shared)
+                .background(Color.clear) // Ensure SwiftUI content is transparent
+
+            // Hosting controller for SwiftUI
             let hostingController = NSHostingController(rootView: settingsView)
+            hostingController.view.wantsLayer = false // Let NSVisualEffectView handle background
+
+            // Create the window
             let window = NSWindow(contentViewController: hostingController)
             window.title = "Tasker Settings"
             window.titleVisibility = .visible
             window.titlebarAppearsTransparent = true
-            window.styleMask.insert(.fullSizeContentView)
             window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-            window.setContentSize(NSSize(width: 500, height: 320))
+            window.setContentSize(NSSize(width: 500, height: 300))
             window.center()
-            // Set window background to AppStyle (clear)
             window.isOpaque = false
-            window.backgroundColor = NSColor.clear
-            window.contentView?.wantsLayer = true
-            window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
-            // Ensure the NSHostingController's view is also clear to allow frosted effect
-            hostingController.view.wantsLayer = true
-            hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
+            window.backgroundColor = .clear
+
+            // --- Glass effect: Insert NSVisualEffectView as background ---
+            if let contentView = window.contentView {
+                let blurView = NSVisualEffectView(frame: contentView.bounds)
+                blurView.autoresizingMask = [.width, .height]
+                blurView.blendingMode = .behindWindow
+                blurView.material = .sidebar // Try .sidebar, .popover, or .underWindowBackground for different blur strengths
+                blurView.state = .active
+
+                // Insert blur view below SwiftUI content
+                contentView.addSubview(blurView, positioned: .below, relativeTo: hostingController.view)
+            }
+
             settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
@@ -192,25 +204,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Popover Size Calculation & Update
 
     func calculatePopoverSize(taskCount: Int) -> NSSize {
-        let inputAreaHeight = AppStyle.inputAreaHeight
+        let settings = SettingsManager.shared
+        let inputAreaHeight = settings.inputAreaHeight
         let dividerHeight = AppStyle.dividerHeight
-        let listTopPadding = AppStyle.rowPadding
-        let taskRowHeight = AppStyle.taskRowHeight
-        let rowVerticalPadding = AppStyle.rowPadding / 2
-        let footerHeight = AppStyle.footerHeight
-        let emptyStateHeight = AppStyle.emptyStateHeight
-        let desiredWidth = AppStyle.listWidth
+        let listTopPadding = settings.rowPadding
+        let taskRowHeight = settings.taskRowHeight
+        let rowVerticalPadding = settings.rowPadding / 2
+        let footerHeight = settings.footerHeight
+        let emptyStateHeight = settings.emptyStateHeight
+        let desiredWidth = settings.listWidth
 
         let baseHeight = inputAreaHeight + dividerHeight + dividerHeight + footerHeight
 
         let extraHeightForFewTasks: CGFloat
         switch taskCount {
         case 1, 2:
-            extraHeightForFewTasks = taskRowHeight + AppStyle.rowPadding
+            extraHeightForFewTasks = taskRowHeight + settings.rowPadding
         case 3:
-            extraHeightForFewTasks = AppStyle.rowPadding * 1.5
+            extraHeightForFewTasks = settings.rowPadding * 1.5
         case 4...:
-            extraHeightForFewTasks = AppStyle.rowPadding * 2.2
+            extraHeightForFewTasks = settings.rowPadding * 2.2
         default:
             extraHeightForFewTasks = 0
         }

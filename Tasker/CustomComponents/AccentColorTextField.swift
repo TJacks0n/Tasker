@@ -10,6 +10,7 @@ import SwiftUI
 struct AccentColorTextField: NSViewRepresentable {
     @Binding var text: String
     var onCommit: (() -> Void)? = nil
+    @EnvironmentObject var settings: SettingsManager
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -24,6 +25,7 @@ struct AccentColorTextField: NSViewRepresentable {
         textField.delegate = context.coordinator
         textField.target = context.coordinator
         textField.action = #selector(Coordinator.commit)
+        textField.font = NSFont.systemFont(ofSize: settings.fontSize) // Apply font size
         return textField
     }
 
@@ -31,13 +33,16 @@ struct AccentColorTextField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
+        // Update font size if it changed
+        if nsView.font?.pointSize != settings.fontSize {
+            nsView.font = NSFont.systemFont(ofSize: settings.fontSize)
+        }
         setInsertionPointColorIfPossible(for: nsView)
     }
 
     /// Tries to set the insertion point color. If the field editor is not available yet, retries after a short delay.
     private func setInsertionPointColorIfPossible(for textField: NSTextField) {
         guard let editor = textField.window?.fieldEditor(false, for: textField) as? NSTextView else {
-            // Retry after a short delay if the field editor is not ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 if let window = textField.window {
                     _ = window.makeFirstResponder(textField)
@@ -46,7 +51,7 @@ struct AccentColorTextField: NSViewRepresentable {
             }
             return
         }
-        editor.insertionPointColor = AppStyle.accentNSColor
+        editor.insertionPointColor = settings.accentNSColor // <-- Use settings here
     }
 
     class Coordinator: NSObject, NSTextFieldDelegate {

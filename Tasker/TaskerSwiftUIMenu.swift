@@ -1,7 +1,16 @@
+//  TaskerSwiftUIMenu.swift
+//  Tasker
+//
+//  Created by Thomas Jackson on 2025-05-23.
+//
+
 import SwiftUI
 
+/// The menu shown when right-clicking the menu bar icon.
+/// Uses global font size and accent color from SettingsManager.
 struct TaskerSwiftUIMenu: View {
     @Environment(\.openSettings) private var openSettings
+    @EnvironmentObject var settings: SettingsManager
 
     // Store the event monitor so it can be removed
     @State private var eventMonitor: Any?
@@ -33,8 +42,9 @@ struct TaskerSwiftUIMenu: View {
         }
         .frame(width: 170)
         .padding(4)
+        .font(.system(size: settings.fontSize)) // Use global font size
         .onAppear {
-            // Register keyDown event monitor
+            // Register keyDown event monitor for menu shortcuts
             eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 // About Tasker: Cmd+I
                 if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers?.lowercased() == "i" {
@@ -69,6 +79,7 @@ struct TaskerSwiftUIMenu: View {
     }
 }
 
+/// A single menu button row, styled with global font and accent color.
 struct MenuButton: View {
     let title: String
     let shortcut: String?
@@ -76,6 +87,7 @@ struct MenuButton: View {
     let action: () -> Void
 
     @State private var isHovering = false
+    @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
         Button(action: action) {
@@ -86,15 +98,15 @@ struct MenuButton: View {
                 if let shortcut = shortcut {
                     Text(shortcut)
                         .foregroundColor(AppStyle.secondaryTextColor)
-                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .font(.system(size: settings.fontSize - 1, weight: .regular, design: .monospaced))
                 }
             }
-            .font(.system(size: 13))
+            .font(.system(size: settings.fontSize))
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovering ? AppStyle.accentColor.opacity(0.32) : Color.clear)
+                    .fill(isHovering ? settings.accentColor.opacity(0.32) : Color.clear)
             )
         }
         .buttonStyle(.plain)

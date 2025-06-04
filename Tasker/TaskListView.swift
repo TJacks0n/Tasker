@@ -10,23 +10,17 @@ extension UTType {
 }
 
 // 1. Task Data Model
-/// Represents a single task item in the list.
-///
-/// Conforms to `Identifiable` for use in SwiftUI lists, `Equatable` for comparisons (e.g., finding index),
-/// and `Codable` for potential persistence (saving/loading).
 struct Task: Identifiable, Equatable, Codable {
-    /// A unique identifier for the task, automatically generated.
-    let id = UUID()
-    /// The text content or description of the task.
+    var id: UUID // Must be var and set manually for Codable to decode
     var title: String
-    /// A Boolean value indicating whether the task has been completed. Defaults to `false`.
     var isCompleted: Bool = false
 
-    /// Compares two `Task` instances for equality based on their `id`, `title`, and `isCompleted` status.
-    /// - Parameters:
-    ///   - lhs: The left-hand side `Task` to compare.
-    ///   - rhs: The right-hand side `Task` to compare.
-    /// - Returns: `true` if the tasks have the same `id`, `title`, and `isCompleted` status; otherwise, `false`.
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false) {
+        self.id = id
+        self.title = title
+        self.isCompleted = isCompleted
+    }
+
     static func == (lhs: Task, rhs: Task) -> Bool {
         return lhs.id == rhs.id &&
                lhs.title == rhs.title &&
@@ -35,103 +29,55 @@ struct Task: Identifiable, Equatable, Codable {
 }
 
 // 2. Task View Model
-/// Manages the state and logic for the list of tasks.
-///
-/// This class conforms to `ObservableObject` to allow SwiftUI views to react to changes
-/// in the task list (`tasks`) or the new task input (`newTaskTitle`).
 class TaskViewModel: ObservableObject {
-    /// The array of `Task` items currently being managed. Marked with `@Published` so
-    /// SwiftUI views observing this view model will automatically update when the array changes.
     @Published var tasks: [Task] = []
-    /// The string bound to the text field used for adding new tasks. Marked with `@Published`
-    /// to enable two-way binding with the input field.
     @Published var newTaskTitle: String = ""
 
-    /// Adds a new task to the list based on the current `newTaskTitle`.
-    ///
-    /// If `newTaskTitle` is empty, the function does nothing. Otherwise, it creates a new `Task`,
-    /// appends it to the `tasks` array with an animation, and clears `newTaskTitle`.
+    /// Adds a new task to the list if the title is not empty.
     func addTask() {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return } // Don't add empty tasks
-
+        guard !trimmedTitle.isEmpty else { return }
         let newTask = Task(title: trimmedTitle)
         tasks.append(newTask)
-        newTaskTitle = "" // <-- Add this line to clear the input field
+        newTaskTitle = ""
     }
 
-    /// Deletes a specific task from the list.
-    /// - Parameter task: The `Task` instance to remove.
-    ///
-    /// Removes the task matching the provided `task.id` from the `tasks` array with an animation.
+    /// Deletes a task from the list.
     func deleteTask(task: Task) {
-        // Animate the removal of the task.
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.id == task.id }
         }
     }
 
-    /// Toggles the completion status (`isCompleted`) of a specific task.
-    /// - Parameter task: The `Task` whose completion status should be toggled.
-    ///
-    /// Finds the task by its `id` and flips its `isCompleted` boolean value with an animation.
+    /// Toggles the completion status of a task.
     func toggleTaskCompletion(task: Task) {
-        // Find the index of the task to toggle.
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            // Animate the change in completion status.
             withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
                 tasks[index].isCompleted.toggle()
             }
         }
     }
 
-    /// Removes all tasks marked as completed (`isCompleted == true`) from the list.
-    ///
-    /// Filters the `tasks` array, keeping only the tasks that are not completed, with an animation.
+    /// Removes all completed tasks from the list.
     func removeCompletedTasks() {
-        // Animate the removal of completed tasks.
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.isCompleted }
         }
     }
 
-    /// Removes all tasks from the list, regardless of their completion status.
-    ///
-    /// This typically does not require animation if the containing view (e.g., popover) handles resizing.
+    /// Clears all tasks from the list.
     func clearList() {
         withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
             tasks.removeAll()
         }
     }
 
-    /// Moves a task from a source position to a target position within the list.
-    /// Used for drag-and-drop reordering.
-    /// - Parameters:
-    ///   - sourceID: The `UUID` of the task being moved.
-    ///   - targetID: The `UUID` of the task relative to which the source task is being dropped.
-    ///   - moveAbove: A Boolean indicating whether the source task should be placed above (`true`)
-    ///                or below (`false`) the target task.
-    ///
-    /// Calculates the correct source and destination indices and uses `tasks.move`
-    /// to reorder the array with an animation.
+    /// Moves a task to a new position in the list.
     func moveTask(sourceID: UUID, targetID: UUID, moveAbove: Bool) {
-        // Find the indices of the source (dragged) and target (drop) tasks.
         guard let sourceIndex = tasks.firstIndex(where: { $0.id == sourceID }),
-              let targetIndex = tasks.firstIndex(where: { $0.id == targetID }) else {
-            print("Error: Could not find source or target index for move.")
-            return
-        }
-
-        // Prevent moving an item onto itself.
+              let targetIndex = tasks.firstIndex(where: { $0.id == targetID }) else { return }
         if sourceIndex == targetIndex { return }
-
-        // Determine the offset for the `tasks.move` function.
-        // If dropping *above* the target, the destination offset is the target's index.
-        // If dropping *below* the target, the destination offset is the target's index + 1.
         let destinationIndex = moveAbove ? targetIndex : targetIndex + 1
-
-        // Perform the move operation with animation.
-        // `tasks.move` handles the index adjustments internally.
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex)
         }
@@ -139,213 +85,162 @@ class TaskViewModel: ObservableObject {
 }
 
 // 3. Main Task List View (UI Layout)
-/// The primary SwiftUI view that displays the list of tasks, input field, and control buttons.
 struct TaskListView: View {
-    /// The view model containing the task data and logic. Observed for changes.
     @ObservedObject var viewModel: TaskViewModel
-    /// State variable to control the presentation of the "Clear All" confirmation alert.
     @State private var showingClearAlert = false
-    /// State variable to hold the `Task` currently being dragged (if any).
     @State private var draggedTask: Task?
-    /// State variable to track the potential drop target task's ID and whether the drop
-    /// is intended for above or below that task. Used for visual feedback.
     @State private var dropTargetInfo: (id: UUID, above: Bool)? = nil
-    /// Inject settings for accent color reactivity
     @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
-        // Main vertical stack for the entire view content.
         VStack(alignment: .leading, spacing: 0) {
             // --- Input Area ---
-            // View containing the text field and button for adding new tasks.
             AddTaskView(viewModel: viewModel)
                 .environmentObject(settings)
-                .padding(.horizontal, AppStyle.rowPadding)
-                .padding(.top, AppStyle.rowPadding)
-                .padding(.bottom, AppStyle.rowPadding / 2)
+                .padding(.horizontal, settings.rowPadding)
+                .padding(.top, settings.rowPadding)
+                .padding(.bottom, settings.rowPadding / 2)
 
-            // Visual separator below the input area.
-            Divider().padding(.horizontal, AppStyle.rowPadding)
+            Divider().padding(.horizontal, settings.rowPadding)
 
             // --- Task List Area ---
-            // Conditionally display either the task list or an empty state message.
             if viewModel.tasks.isEmpty {
-                // Message shown when there are no tasks.
                 Text("No tasks yet!")
                     .foregroundColor(AppStyle.secondaryTextColor)
-                    .font(.system(size: AppStyle.defaultFontSize))
+                    .font(.system(size: settings.fontSize))
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .frame(height: AppStyle.emptyStateHeight)
-                    .frame(minHeight: AppStyle.emptyStateHeight)
+                    .frame(height: settings.emptyStateHeight)
+                    .frame(minHeight: settings.emptyStateHeight)
             } else {
-                // Scrollable container for the list of tasks.
                 ScrollView {
-                    // Lazily loads task rows as they become visible.
                     LazyVStack(spacing: 0) {
-                        // Iterate over the tasks in the view model.
                         ForEach($viewModel.tasks) { $task in
-                            // Vertical stack for each task row and its associated drop indicators.
                             VStack(spacing: 0) {
-                                // --- Drop indicator ABOVE the task row ---
-                                // Visible only when dragging over the top half of the row.
+                                // Drop indicator ABOVE
                                 Rectangle()
                                     .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == true ? settings.accentColor : .clear)
                                     .frame(height: 2)
-                                    .padding(.horizontal, AppStyle.rowPadding / 2)
+                                    .padding(.horizontal, settings.rowPadding / 2)
 
-                                // The view representing a single task row.
+                                // Task row
                                 TaskRowView(task: $task, viewModel: viewModel)
-                                    .padding(.vertical, AppStyle.rowPadding / 2)
-                                    .transition(.scale.combined(with: .opacity)) // Animate appearance/disappearance
-                                    // --- Drag Source ---
-                                    // Makes the TaskRowView draggable.
+                                    .padding(.vertical, settings.rowPadding / 2)
+                                    .transition(.scale.combined(with: .opacity))
                                     .onDrag {
-                                        self.draggedTask = task // Store the task being dragged.
-                                        self.dropTargetInfo = nil // Clear drop target when starting a new drag.
-                                        // Provide the task's ID as the draggable data.
+                                        self.draggedTask = task
+                                        self.dropTargetInfo = nil
                                         return NSItemProvider(object: task.id.uuidString as NSString)
                                     } preview: {
-                                        // Optional: Custom view shown while dragging.
                                         TaskRowView(task: $task, viewModel: viewModel)
-                                            .frame(width: AppStyle.listWidth)
+                                            .frame(width: settings.listWidth)
                                             .background(AppStyle.backgroundColor)
                                     }
-                                    // --- Drop Target ---
-                                    // Makes the TaskRowView accept drops.
-                                    .onDrop(of: [UTType.taskItem, .plainText], // Accepts custom task type or plain text UUID.
-                                            delegate: TaskDropDelegate( // Uses a delegate to handle drop logic.
-                                                item: task, // The task associated with this drop target.
-                                                tasks: $viewModel.tasks, // Binding to the tasks array.
-                                                draggedItem: $draggedTask, // Binding to the currently dragged task.
-                                                dropTargetInfo: $dropTargetInfo, // Binding to the drop target state.
-                                                viewModel: viewModel // Reference to the view model for moving tasks.
+                                    .onDrop(of: [UTType.taskItem, .plainText],
+                                            delegate: TaskDropDelegate(
+                                                item: task,
+                                                tasks: $viewModel.tasks,
+                                                draggedItem: $draggedTask,
+                                                dropTargetInfo: $dropTargetInfo,
+                                                viewModel: viewModel
                                             ))
 
-                                // --- Drop indicator BELOW the task row ---
-                                // Visible only when dragging over the bottom half of the row.
+                                // Drop indicator BELOW
                                 Rectangle()
                                     .fill(dropTargetInfo?.id == task.id && dropTargetInfo?.above == false ? settings.accentColor : .clear)
                                     .frame(height: 2)
-                                    .padding(.horizontal, AppStyle.rowPadding / 2)
+                                    .padding(.horizontal, settings.rowPadding / 2)
                             }
                         }
                     }
-                    .padding(.top, AppStyle.rowPadding)
+                    .padding(.top, settings.rowPadding)
                 }
-                .frame(maxHeight: .infinity) // Allow scrollview to take available space
-                .scrollContentBackground(.hidden) // Make ScrollView background transparent if needed
+                .frame(maxHeight: .infinity)
+                .scrollContentBackground(.hidden)
             }
 
-            // --- Footer Area ---
-            // Visual separator above the footer buttons.
-            Divider().padding(.horizontal, AppStyle.rowPadding)
-            // Horizontal stack for the action buttons at the bottom.
+            Divider().padding(.horizontal, settings.rowPadding)
             HStack {
-                // Button to remove all completed tasks.
                 Button("Clear Completed") {
                     viewModel.removeCompletedTasks()
                 }
-                // Use AppStyle for consistent font and padding.
-                .font(.system(size: AppStyle.defaultFontSize))
-                .padding(.vertical, AppStyle.buttonVerticalPadding)
-                .padding(.horizontal, AppStyle.buttonHorizontalPadding)
-                // Disabled if there are no completed tasks.
+                .font(.system(size: settings.fontSize))
+                .padding(.vertical, settings.buttonVerticalPadding)
+                .padding(.horizontal, settings.buttonHorizontalPadding)
                 .disabled(viewModel.tasks.filter { $0.isCompleted }.isEmpty)
                 .accessibilityIdentifier("clearCompletedButton")
 
-                Spacer() // Pushes buttons to opposite ends.
+                Spacer()
 
-                // Button to remove all tasks.
                 Button("Clear All") {
-                    showingClearAlert = true // Shows the confirmation alert.
+                    showingClearAlert = true
                 }
-                // Use AppStyle for consistent font and padding.
-                .font(.system(size: AppStyle.defaultFontSize))
-                .padding(.vertical, AppStyle.buttonVerticalPadding)
-                .padding(.horizontal, AppStyle.buttonHorizontalPadding)
-                // Disabled if the task list is empty.
+                .font(.system(size: settings.fontSize))
+                .padding(.vertical, settings.buttonVerticalPadding)
+                .padding(.horizontal, settings.buttonHorizontalPadding)
                 .disabled(viewModel.tasks.isEmpty)
                 .foregroundColor(AppStyle.destructiveColor)
                 .accessibilityIdentifier("clearAllButton")
             }
-            .padding(.vertical, AppStyle.rowPadding)
-            .padding(.horizontal, AppStyle.rowPadding)
+            .padding(.vertical, settings.rowPadding)
+            .padding(.horizontal, settings.rowPadding)
         }
         .background(AppStyle.backgroundColor)
-        .frame(width: AppStyle.listWidth)
-        // --- Alert ---
-        // Confirmation dialog for the "Clear All" action.
+        .frame(width: settings.listWidth)
+        .font(.system(size: settings.fontSize)) // <-- Apply global font size to all content
         .alert("Clear All Tasks?", isPresented: $showingClearAlert) {
-            Button("Cancel", role: .cancel) { } // Dismisses the alert.
-            Button("Clear All", role: .destructive) { // Performs the clear action.
+            Button("Cancel", role: .cancel) { }
+            Button("Clear All", role: .destructive) {
                 viewModel.clearList()
             }
         } message: {
             Text("Are you sure you want to remove all tasks? This cannot be undone.")
         }
-        // --- Global Drop Target ---
-        // Handles drops that occur outside of any specific TaskRowView within the VStack.
         .onDrop(of: [UTType.taskItem, .plainText], isTargeted: nil) { providers in
-            print("Dropped outside valid area")
-            // Clear drag/drop state if the drop doesn't land on a valid row target.
             DispatchQueue.main.async {
                 self.dropTargetInfo = nil
                 self.draggedTask = nil
             }
-            // Indicate that the drop was handled (by clearing state), preventing propagation.
             return true
         }
     }
 }
 
 // 4. Add Task Input View
-/// A view component containing a text field and a button for adding new tasks.
 struct AddTaskView: View {
-    /// The view model that manages the task list and the new task title.
     @ObservedObject var viewModel: TaskViewModel
-    /// Controls the focus state of the text field. True when the field is focused.
     @FocusState private var isInputActive: Bool
-    /// Inject settings for accent color reactivity
     @EnvironmentObject var settings: SettingsManager
 
     var body: some View {
-        // Horizontal stack for the text field and add button.
         HStack {
-            // Use AccentColorTextField for custom cursor color in the add-task input
             AccentColorTextField(text: $viewModel.newTaskTitle, onCommit: addTask)
-                .frame(height: AppStyle.defaultFontSize + 6)
-                .font(.system(size: AppStyle.defaultFontSize))
+                .frame(height: settings.fontSize + 6)
+                .font(.system(size: settings.fontSize))
                 .focused($isInputActive)
                 .onSubmit(addTask)
                 .accessibilityIdentifier("newTaskTextField")
-            
-            // Button to trigger adding the task.
             Button(action: addTask) {
-                Image(systemName: "plus.circle.fill") // Standard SF Symbol for adding.
-                    .font(.system(size: AppStyle.defaultFontSize))
-                    .foregroundColor(settings.accentColor) // <-- Use settings.accentColor for reactivity
-                    .padding(.vertical, AppStyle.buttonVerticalPadding)
-                    .padding(.horizontal, AppStyle.buttonHorizontalPadding)
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: settings.fontSize))
+                    .foregroundColor(settings.accentColor)
+                    .padding(.vertical, settings.buttonVerticalPadding)
+                    .padding(.horizontal, settings.buttonHorizontalPadding)
             }
-            .buttonStyle(PlainButtonStyle()) // Remove default button styling for a cleaner look.
-            .disabled(viewModel.newTaskTitle.isEmpty) // Disable the button if the text field is empty.
+            .buttonStyle(PlainButtonStyle())
+            .disabled(viewModel.newTaskTitle.isEmpty)
         }
         .onAppear {
-            // Set focus to the text field automatically when the view appears.
-            // A slight delay might be necessary depending on view presentation timing (e.g., in a popover).
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isInputActive = true
             }
         }
     }
 
-    /// Helper function called when the add button is tapped or the text field is submitted.
-    /// It delegates the actual task addition logic to the view model.
+    /// Adds a new task using the current input.
     func addTask() {
         let trimmedTitle = viewModel.newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
-
         let newTask = Task(title: trimmedTitle)
         withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
             viewModel.tasks.append(newTask)
@@ -354,84 +249,45 @@ struct AddTaskView: View {
     }
 }
 
-
 // 5. Drop Delegate Helper Struct
-/// Implements the `DropDelegate` protocol to handle drag-and-drop operations for `Task` items
-/// within the `TaskListView`. Each `TaskRowView` gets an instance of this delegate.
 struct TaskDropDelegate: DropDelegate {
-    /// The specific `Task` item associated with the view this delegate instance is attached to.
-    /// This represents the potential drop target.
     let item: Task
-    /// A binding to the array of `Task` objects in the `TaskViewModel`. Allows the delegate
-    /// to modify the task order upon a successful drop.
     @Binding var tasks: [Task]
-    /// A binding to the optional `Task` that is currently being dragged. This state is shared
-    /// across all drop delegates in the list. `nil` if no drag is in progress.
     @Binding var draggedItem: Task?
-    /// A binding to the shared state that tracks which task (`id`) is the current drop target
-    /// and whether the drop indicator should appear above (`true`) or below (`false`) it.
-    /// `nil` if the cursor is not over a valid drop target area.
     @Binding var dropTargetInfo: (id: UUID, above: Bool)?
-    /// A reference to the `TaskViewModel` to call the `moveTask` function for reordering.
     var viewModel: TaskViewModel
-    
-    /// Called repeatedly while a dragged item is over the delegate's view.
-    /// Determines the drop position (above/below the `item`) based on the cursor's location
-    /// and updates the shared `dropTargetInfo` state to provide visual feedback (the drop indicator line).
-    /// - Parameter info: Contains information about the drag operation, including cursor location.
-    /// - Returns: A `DropProposal` indicating the type of operation allowed (in this case, `.move`).
+
+    /// Called when the drop location is updated.
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        // Determine if the drop location is in the top or bottom half of the row's frame.
         let dropLocation = info.location
-        // Approximation: Assume drop is above if y-coordinate is less than a threshold (e.g., 10).
-        // A more precise method might involve GeometryReader in the TaskRowView.
-        let isAbove = dropLocation.y < 10 // Adjust this threshold based on row padding/height.
-        
-        // Update the shared state on the main thread for UI updates.
+        let isAbove = dropLocation.y < 10
         DispatchQueue.main.async {
             self.dropTargetInfo = (item.id, isAbove)
         }
-        
-        // Propose a 'move' operation.
         return DropProposal(operation: .move)
     }
-    
-    /// Called when the dragged item exits the bounds of the delegate's view.
-    /// Clears the `dropTargetInfo` if it was previously set for this specific `item`.
-    /// - Parameter info: Contains information about the drag operation.
+
+    /// Called when the drag leaves the drop target.
     func dropExited(info: DropInfo) {
-        // If the cursor is leaving *this* item's area, clear its target status.
         DispatchQueue.main.async {
             if self.dropTargetInfo?.id == item.id {
                 self.dropTargetInfo = nil
             }
         }
     }
-    
-    /// Called when the user releases the dragged item over the delegate's view.
-    /// Performs the actual reordering of the task list.
-    /// - Parameter info: Contains information about the drop operation.
-    /// - Returns: `true` if the drop was successfully handled, `false` otherwise.
+
+    /// Handles the drop action.
     func performDrop(info: DropInfo) -> Bool {
-        // Ensure there is a dragged item and the drop target info matches this item.
         guard let draggedItem = self.draggedItem,
               let currentTargetInfo = self.dropTargetInfo,
               currentTargetInfo.id == item.id else {
-            print("Drop failed: No dragged item or target info mismatch.")
-            // Clear potentially stale state on failure.
             self.dropTargetInfo = nil
             self.draggedItem = nil
             return false
         }
-        
-        // Prevent dropping an item onto itself (though moveTask also checks).
         if draggedItem.id != item.id {
-            print("Moving task \(draggedItem.title) \(currentTargetInfo.above ? "above" : "below") \(item.title)")
-            // Call the view model's function to move the task, using the 'above' flag from the state.
             viewModel.moveTask(sourceID: draggedItem.id, targetID: item.id, moveAbove: currentTargetInfo.above)
         }
-        
-        // Clear the drag/drop states after a successful or self-drop.
         self.dropTargetInfo = nil
         self.draggedItem = nil
         return true
