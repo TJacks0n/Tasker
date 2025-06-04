@@ -9,8 +9,10 @@ import SwiftUI
 /// The menu shown when right-clicking the menu bar icon.
 /// Uses global font size and accent color from SettingsManager.
 struct TaskerSwiftUIMenu: View {
-    @Environment(\.openSettings) private var openSettings
+    // Removed @Environment(\.openSettings) since we now use AppDelegate directly
     @EnvironmentObject var settings: SettingsManager
+    var onShowSettings: () -> Void
+
 
     // Store the event monitor so it can be removed
     @State private var eventMonitor: Any?
@@ -25,7 +27,9 @@ struct TaskerSwiftUIMenu: View {
             MenuButton(
                 title: "Settings...",
                 shortcut: "⌘ ,",
-                action: { openSettings() }
+                action: {
+                    onShowSettings()
+                }
             )
             Divider().padding(.vertical, 2)
             MenuButton(
@@ -52,8 +56,11 @@ struct TaskerSwiftUIMenu: View {
                     return nil
                 }
                 // Settings: Cmd+,
+                // Updated: Call AppDelegate's showSettingsWindow() for consistency
                 if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "," {
-                    openSettings()
+                    if let delegate = NSApp.delegate as? AppDelegate {
+                        delegate.showSettingsWindow()
+                    }
                     return nil
                 }
                 // Report Bug: Shift+Cmd+B

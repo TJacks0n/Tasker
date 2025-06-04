@@ -146,6 +146,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Spacer().frame(height:5)
             // --- Category selection bar ---
             HStack {
                 Spacer()

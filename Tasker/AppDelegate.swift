@@ -94,8 +94,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             // Show SwiftUI menu popover for right-click
-            let menuView = TaskerSwiftUIMenu()
-                .environmentObject(SettingsManager.shared)
+            let menuView = TaskerSwiftUIMenu(onShowSettings: { [weak self] in
+                self?.menuPopover?.performClose(nil)
+                self?.showSettingsWindow()
+            })
+            .environmentObject(SettingsManager.shared)
             let hostingController = NSHostingController(rootView: menuView)
             let popover = NSPopover()
             popover.contentViewController = hostingController
@@ -164,37 +167,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showSettingsWindow(_ sender: Any? = nil) {
         NSApp.activate(ignoringOtherApps: true)
         if settingsWindow == nil {
-            // Create the settings SwiftUI view
+            // 1. Create the blur background view
+            let blurView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+            blurView.blendingMode = .behindWindow
+            blurView.material = .sidebar // or .hudWindow, .popover, etc.
+            blurView.state = .active
+            blurView.autoresizingMask = [.width, .height]
+
+            // 2. Create the SwiftUI settings view
             let settingsView = SettingsView()
                 .environmentObject(SettingsManager.shared)
-                .background(Color.clear) // Ensure SwiftUI content is transparent
-
-            // Hosting controller for SwiftUI
             let hostingController = NSHostingController(rootView: settingsView)
-            hostingController.view.wantsLayer = false // Let NSVisualEffectView handle background
+            hostingController.view.frame = blurView.bounds
+            hostingController.view.autoresizingMask = [.width, .height]
+            hostingController.view.wantsLayer = false
 
-            // Create the window
-            let window = NSWindow(contentViewController: hostingController)
+            // 3. Add SwiftUI view to blur view
+            blurView.addSubview(hostingController.view)
+
+            // 4. Create the window with the blur view as contentView
+            let window = NSWindow(contentRect: blurView.bounds,
+                                  styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                                  backing: .buffered,
+                                  defer: false)
+            window.contentView = blurView
             window.title = "Tasker Settings"
             window.titleVisibility = .visible
             window.titlebarAppearsTransparent = true
-            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-            window.setContentSize(NSSize(width: 500, height: 300))
-            window.center()
             window.isOpaque = false
             window.backgroundColor = .clear
-
-            // --- Glass effect: Insert NSVisualEffectView as background ---
-            if let contentView = window.contentView {
-                let blurView = NSVisualEffectView(frame: contentView.bounds)
-                blurView.autoresizingMask = [.width, .height]
-                blurView.blendingMode = .behindWindow
-                blurView.material = .sidebar // Try .sidebar, .popover, or .underWindowBackground for different blur strengths
-                blurView.state = .active
-
-                // Insert blur view below SwiftUI content
-                contentView.addSubview(blurView, positioned: .below, relativeTo: hostingController.view)
-            }
+            window.center()
 
             settingsWindow = window
         }
