@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Startup settings view, now including the custom-styled "Launch at Login" checkbox.
+/// Startup settings view, now only including the custom-styled "Launch at Login" checkbox.
 struct StartupSettingsView: View {
     @EnvironmentObject var settings: SettingsManager
     @StateObject private var launchAtLogin = LaunchAtLoginManager()
@@ -19,6 +19,7 @@ struct StartupSettingsView: View {
                 Text("Launch settings")
                     .font(.system(size: settings.fontSize, weight: .bold))
                 HStack {
+                    // Custom rounded checkbox for launch at login
                     RoundedCheckbox(
                         isOn: $launchAtLogin.isEnabled,
                         accentColor: settings.accentColor,

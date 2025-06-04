@@ -38,10 +38,14 @@ final class SettingsManager: ObservableObject {
     @Published var fontSize: CGFloat = 13
     @Published var colorScheme: ColorScheme = .light
     @Published var theme: AppTheme = .system
-    @Published var accentColor: Color = Color(hex: "#6D72C3") // <-- Updated default
+    @Published var accentColor: Color = Color(hex: "#6D72C3") // Default accent color
 
     // --- Task list behavior ---
     @Published var addTaskPosition: AddTaskPosition = .top
+
+    // --- Startup/task persistence ---
+    /// If true, tasks are saved and restored when the app is closed and reopened.
+    @Published var retainTasksOnClose: Bool = true
 
     // --- Dynamic style properties (computed from font size) ---
     var rowPadding: CGFloat { fontSize * 0.7 }

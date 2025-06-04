@@ -36,7 +36,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .general: return 300
         case .startup: return 300
         case .appearance: return 400
-        case .behavior: return 260
+        case .behavior: return 300
         case .data: return 260
         }
     }
