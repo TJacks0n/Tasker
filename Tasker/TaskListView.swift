@@ -28,10 +28,62 @@ struct Task: Identifiable, Equatable, Codable {
     }
 }
 
-// MARK: - Task View Model
+// MARK: - Task View Model with Persistence
 class TaskViewModel: ObservableObject {
-    @Published var tasks: [Task] = []
+    @Published var tasks: [Task] = [] {
+        didSet { saveTasksIfNeeded() }
+    }
     @Published var newTaskTitle: String = ""
+
+    private var cancellables = Set<AnyCancellable>()
+    private let tasksFileURL: URL = {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let folder = dir.appendingPathComponent("Tasker", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appendingPathComponent("tasks.json")
+    }()
+
+    init() {
+        // Observe retainTasksOnClose setting
+        SettingsManager.shared.$retainTasksOnClose
+            .sink { [weak self] retain in
+                if retain {
+                    self?.loadTasks()
+                } else {
+                    self?.deleteSavedTasks()
+                }
+            }
+            .store(in: &cancellables)
+        // Load tasks if needed on init
+        if SettingsManager.shared.retainTasksOnClose {
+            loadTasks()
+        }
+    }
+
+    private func saveTasksIfNeeded() {
+        guard SettingsManager.shared.retainTasksOnClose else { return }
+        do {
+            let data = try JSONEncoder().encode(tasks)
+            try data.write(to: tasksFileURL)
+        } catch {
+            print("Failed to save tasks: \(error)")
+        }
+    }
+
+    private func loadTasks() {
+        guard FileManager.default.fileExists(atPath: tasksFileURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: tasksFileURL)
+            let loaded = try JSONDecoder().decode([Task].self, from: data)
+            self.tasks = loaded
+        } catch {
+            print("Failed to load tasks: \(error)")
+        }
+    }
+
+    private func deleteSavedTasks() {
+        try? FileManager.default.removeItem(at: tasksFileURL)
+    }
 
     /// Adds a new task to the list, using the addTaskPosition from settings.
     func addTask(settings: SettingsManager) {

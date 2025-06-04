@@ -9,7 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var popover: NSPopover!
     var statusItem: NSStatusItem!
-    var taskViewModel = TaskViewModel()
+    var taskViewModel: TaskViewModel! // Now optional, will be initialized after settings load
     private var cancellables = Set<AnyCancellable>()
     private var hostingController: NSHostingController<AnyView>?
     private let bugReporter = BugReporter()
@@ -23,7 +23,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Setup the main content view and hosting controller for the left-click popover
+        // --- Ensure settings are loaded before creating TaskViewModel ---
+        _ = SettingsManager.shared
+        taskViewModel = TaskViewModel() // Now reads correct retainTasksOnClose
+
+        // --- Setup the main content view and hosting controller for the left-click popover ---
         let contentView = TaskListView(viewModel: taskViewModel)
             .environmentObject(SettingsManager.shared)
         let initialSize = calculatePopoverSize(taskCount: taskViewModel.tasks.count)
@@ -32,7 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.hostingController?.view.wantsLayer = true
         self.hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor
 
-        // Setup the left-click popover
+        // --- Setup the left-click popover ---
         popover = NSPopover()
         popover.contentSize = initialSize
         popover.contentViewController = hostingController
@@ -40,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .vibrantDark)
 
-        // Setup the status item (menu bar icon)
+        // --- Setup the status item (menu bar icon) ---
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(named: "menuBarIcon")
@@ -49,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
-        // Observe changes to the task list and update popover size accordingly
+        // --- Observe changes to the task list and update popover size accordingly ---
         taskViewModel.$tasks
             .debounce(for: .milliseconds(50), scheduler: DispatchQueue.main)
             .sink { [weak self] tasks in
@@ -58,7 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        // Observe changes to font size and update popover size dynamically
+        // --- Observe changes to font size and update popover size dynamically ---
         SettingsManager.shared.$fontSize
             .sink { [weak self] _ in
                 guard let self = self else { return }
@@ -66,13 +70,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        // Observe fontSize changes to resize settings window
+        // --- Observe fontSize changes to resize settings window ---
         settingsCancellable = SettingsManager.shared.$fontSize
             .sink { [weak self] _ in
                 self?.resizeSettingsWindow()
             }
 
-        // Observe font size commit notification to always resize settings window
+        // --- Observe font size commit notification to always resize settings window ---
         NotificationCenter.default.addObserver(
             forName: .settingsFontSizeDidCommit,
             object: nil,
@@ -81,12 +85,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.resizeSettingsWindow()
         }
 
-        // Set activation policy after a short delay (for menu bar app behavior)
+        // --- Set activation policy after a short delay (for menu bar app behavior) ---
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             NSApp.setActivationPolicy(.accessory)
         }
 
-        // Register Cmd + , shortcut for settings
+        // --- Register Cmd + , shortcut for settings ---
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.modifierFlags.contains(.command) && event.characters == "," {
                 self?.showSettingsWindow()

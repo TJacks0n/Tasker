@@ -6,6 +6,7 @@
 
 import SwiftUI
 
+/// Selector for choosing where new tasks are added (top or bottom of the list).
 struct AddTaskPositionSelector: View {
     @Binding var selection: AddTaskPosition
     @EnvironmentObject var settings: SettingsManager
@@ -33,6 +34,7 @@ struct AddTaskPositionSelector: View {
     }
 }
 
+/// Button for a single add-task position option (top or bottom).
 private struct AddTaskPositionButton: View {
     let position: AddTaskPosition
     let isSelected: Bool
@@ -48,16 +50,26 @@ private struct AddTaskPositionButton: View {
     private let buttonHeight: CGFloat = 28
     private let minButtonWidth: CGFloat = 64
 
-    var scale: CGFloat {
-        isHovered ? 1.07 : 1.0
+    /// Returns the display text for each position.
+    private var positionText: String {
+        switch position {
+        case .top: return "Top"
+        case .bottom: return "Bottom"
+        }
     }
 
+    /// Highlight color for hover/selection states.
     var highlightColor: Color {
         if isSelected {
             isHovered ? accentColor.opacity(0.22) : accentColor.opacity(0.15)
         } else {
             isHovered ? Color.secondary.opacity(0.13) : Color.clear
         }
+    }
+
+    /// Scale effect for hover animation.
+    var scale: CGFloat {
+        isHovered ? 1.07 : 1.0
     }
 
     var body: some View {
@@ -71,7 +83,8 @@ private struct AddTaskPositionButton: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(highlightColor)
                 }
-                Text(position.rawValue)
+                // Use positionText instead of rawValue (which is now Int)
+                Text(positionText)
                     .font(.system(size: fontSize, weight: .medium))
                     .foregroundColor(isSelected ? .white : .primary)
             }
