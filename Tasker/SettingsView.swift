@@ -33,9 +33,9 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     // Preferred window height for each category
     var preferredHeight: CGFloat {
         switch self {
-        case .general: return 260
-        case .startup: return 260
-        case .appearance: return 380
+        case .general: return 300
+        case .startup: return 300
+        case .appearance: return 400
         case .behavior: return 260
         case .data: return 260
         }
@@ -153,8 +153,11 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     ForEach(SettingsCategory.allCases) { category in
                         Button(action: {
-                            selection = category
-                            onCategoryChange?(category) // Notify AppDelegate for window height change
+                            // Use a subtle easeInOut animation for selection change
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                selection = category
+                                onCategoryChange?(category) // Notify AppDelegate for window height change
+                            }
                         }) {
                             VStack(spacing: 2) {
                                 Image(systemName: category.icon)
@@ -173,6 +176,8 @@ struct SettingsView: View {
             // Top padding now gently increases with font size for better balance
             .padding(.top, 6 + max(0, (settings.fontSize - 13)) * 0.7)
             .padding(.bottom, 6)
+            // Animate the selection bar with a subtle easeInOut
+            .animation(.easeInOut(duration: 0.22), value: selection)
 
             Divider().frame(height: AppStyle.dividerHeight)
 
@@ -192,6 +197,9 @@ struct SettingsView: View {
                 }
             }
             .padding()
+            // Animate content transitions with a subtle effect
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .animation(.easeInOut(duration: 0.22), value: selection)
         }
         .font(.system(size: settings.fontSize))
         .preferredColorScheme(settings.theme == .system ? nil : effectiveColorScheme)

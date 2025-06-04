@@ -4,14 +4,14 @@ import Combine
 import AppKit
 import UniformTypeIdentifiers
 
-// Define a UTI for dragging tasks
+// MARK: - Define a UTI for dragging tasks
 extension UTType {
     static let taskItem = UTType(exportedAs: "com.github.TJacks0n.Tasker")
 }
 
-// 1. Task Data Model
+// MARK: - Task Data Model
 struct Task: Identifiable, Equatable, Codable {
-    var id: UUID // Must be var and set manually for Codable to decode
+    var id: UUID
     var title: String
     var isCompleted: Bool = false
 
@@ -28,28 +28,33 @@ struct Task: Identifiable, Equatable, Codable {
     }
 }
 
-// 2. Task View Model
+// MARK: - Task View Model
 class TaskViewModel: ObservableObject {
     @Published var tasks: [Task] = []
     @Published var newTaskTitle: String = ""
 
-    /// Adds a new task to the list if the title is not empty.
-    func addTask() {
+    /// Adds a new task to the list, using the addTaskPosition from settings.
+    func addTask(settings: SettingsManager) {
         let trimmedTitle = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
         let newTask = Task(title: trimmedTitle)
-        tasks.append(newTask)
+        withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
+            switch settings.addTaskPosition {
+            case .top:
+                tasks.insert(newTask, at: 0)
+            case .bottom:
+                tasks.append(newTask)
+            }
+        }
         newTaskTitle = ""
     }
 
-    /// Deletes a task from the list.
     func deleteTask(task: Task) {
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.id == task.id }
         }
     }
 
-    /// Toggles the completion status of a task.
     func toggleTaskCompletion(task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
@@ -58,21 +63,18 @@ class TaskViewModel: ObservableObject {
         }
     }
 
-    /// Removes all completed tasks from the list.
     func removeCompletedTasks() {
         withAnimation(.interpolatingSpring(stiffness: 170, damping: 15)) {
             tasks.removeAll { $0.isCompleted }
         }
     }
 
-    /// Clears all tasks from the list.
     func clearList() {
         withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
             tasks.removeAll()
         }
     }
 
-    /// Moves a task to a new position in the list.
     func moveTask(sourceID: UUID, targetID: UUID, moveAbove: Bool) {
         guard let sourceIndex = tasks.firstIndex(where: { $0.id == sourceID }),
               let targetIndex = tasks.firstIndex(where: { $0.id == targetID }) else { return }
@@ -84,7 +86,7 @@ class TaskViewModel: ObservableObject {
     }
 }
 
-// 3. Main Task List View (UI Layout)
+// MARK: - Main Task List View (UI Layout)
 struct TaskListView: View {
     @ObservedObject var viewModel: TaskViewModel
     @State private var showingClearAlert = false
@@ -187,7 +189,7 @@ struct TaskListView: View {
         }
         .background(AppStyle.backgroundColor)
         .frame(width: settings.listWidth)
-        .font(.system(size: settings.fontSize)) // <-- Apply global font size to all content
+        .font(.system(size: settings.fontSize))
         .alert("Clear All Tasks?", isPresented: $showingClearAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Clear All", role: .destructive) {
@@ -206,7 +208,7 @@ struct TaskListView: View {
     }
 }
 
-// 4. Add Task Input View
+// MARK: - Add Task Input View
 struct AddTaskView: View {
     @ObservedObject var viewModel: TaskViewModel
     @FocusState private var isInputActive: Bool
@@ -214,7 +216,7 @@ struct AddTaskView: View {
 
     var body: some View {
         HStack {
-            AccentColorTextField(text: $viewModel.newTaskTitle, onCommit: addTask)
+            AccentColorTextField(text: $viewModel.newTaskTitle, onCommit: { addTask() })
                 .frame(height: settings.fontSize + 6)
                 .font(.system(size: settings.fontSize))
                 .focused($isInputActive)
@@ -237,19 +239,12 @@ struct AddTaskView: View {
         }
     }
 
-    /// Adds a new task using the current input.
     func addTask() {
-        let trimmedTitle = viewModel.newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
-        let newTask = Task(title: trimmedTitle)
-        withAnimation(.interpolatingSpring(stiffness: 80, damping: 7)) {
-            viewModel.tasks.append(newTask)
-        }
-        viewModel.newTaskTitle = ""
+        viewModel.addTask(settings: settings)
     }
 }
 
-// 5. Drop Delegate Helper Struct
+// MARK: - Drop Delegate Helper Struct
 struct TaskDropDelegate: DropDelegate {
     let item: Task
     @Binding var tasks: [Task]
@@ -257,7 +252,6 @@ struct TaskDropDelegate: DropDelegate {
     @Binding var dropTargetInfo: (id: UUID, above: Bool)?
     var viewModel: TaskViewModel
 
-    /// Called when the drop location is updated.
     func dropUpdated(info: DropInfo) -> DropProposal? {
         let dropLocation = info.location
         let isAbove = dropLocation.y < 10
@@ -267,7 +261,6 @@ struct TaskDropDelegate: DropDelegate {
         return DropProposal(operation: .move)
     }
 
-    /// Called when the drag leaves the drop target.
     func dropExited(info: DropInfo) {
         DispatchQueue.main.async {
             if self.dropTargetInfo?.id == item.id {
@@ -276,7 +269,6 @@ struct TaskDropDelegate: DropDelegate {
         }
     }
 
-    /// Handles the drop action.
     func performDrop(info: DropInfo) -> Bool {
         guard let draggedItem = self.draggedItem,
               let currentTargetInfo = self.dropTargetInfo,

@@ -6,23 +6,44 @@
 
 import SwiftUI
 
+// MARK: - App-wide static style constants
 struct AppStyle {
-    // Only keep static constants that never change
     static let dividerHeight: CGFloat = 1
     static let secondaryTextColor: Color = Color.secondary
     static let destructiveColor: Color = .red
     static let backgroundColor: Color = .clear
 }
 
-// Move all dynamic style properties to SettingsManager
+// MARK: - Add task position enum
+/// Controls where new tasks are inserted in the list.
+enum AddTaskPosition: String, CaseIterable, Identifiable {
+    case top = "Top"
+    case bottom = "Bottom"
+    var id: String { rawValue }
+}
+
+// MARK: - App theme enum
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+    var id: String { rawValue }
+}
+
+// MARK: - Global settings manager (singleton)
 final class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
+
+    // --- Appearance ---
     @Published var fontSize: CGFloat = 13
     @Published var colorScheme: ColorScheme = .light
     @Published var theme: AppTheme = .system
-    @Published var accentColor: Color = .yellow
+    @Published var accentColor: Color = Color(hex: "#6D72C3") // <-- Updated default
 
-    // Dynamic style properties
+    // --- Task list behavior ---
+    @Published var addTaskPosition: AddTaskPosition = .top
+
+    // --- Dynamic style properties (computed from font size) ---
     var rowPadding: CGFloat { fontSize * 0.7 }
     var listWidth: CGFloat { fontSize * 24 }
     var inputAreaHeight: CGFloat { fontSize * 2.7 }
@@ -38,10 +59,22 @@ final class SettingsManager: ObservableObject {
     private init() {}
 }
 
-enum AppTheme: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String { rawValue }
+// MARK: - Color extension for hex initialization
+extension Color {
+    /// Initialize a Color from a hex string (e.g. "#6D72C3")
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, (int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = ((int >> 24) & 0xFF, (int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255, opacity: Double(a) / 255)
+    }
 }

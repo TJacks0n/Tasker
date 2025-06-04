@@ -16,6 +16,8 @@ struct AccentSlider: View {
     @EnvironmentObject var settings: SettingsManager
 
     @GestureState private var isDragging = false
+    @State private var isThumbHovered = false
+    @State private var isThumbPressed = false
 
     var body: some View {
         GeometryReader { geo in
@@ -25,7 +27,6 @@ struct AccentSlider: View {
             let thumbRadius: CGFloat = 8
             let dotSize: CGFloat = 4
 
-            // Thumb center X: goes from 0 to width
             let thumbX = percent * width
 
             ZStack(alignment: .leading) {
@@ -45,32 +46,56 @@ struct AccentSlider: View {
                         .position(x: x, y: 12)
                 }
 
-                // Fill track (fix: no minimum width)
+                // Fill track
                 Capsule()
                     .fill(settings.accentColor)
                     .frame(width: percent * width, height: 4)
                     .frame(maxHeight: .infinity, alignment: .center)
 
-                // Thumb
-                Circle()
-                    .fill(settings.accentColor)
-                    .frame(width: thumbRadius * 2, height: thumbRadius * 2)
-                    .shadow(color: .black.opacity(0.10), radius: 1, x: 0, y: 1)
-                    .position(x: thumbX, y: 12)
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { gesture in
-                                let x = min(max(0, gesture.location.x), width)
-                                let percent = x / width
-                                let rawValue = range.lowerBound + percent * (range.upperBound - range.lowerBound)
-                                let newValue = (rawValue / step).rounded() * step
-                                value = min(max(range.lowerBound, newValue), range.upperBound)
-                                onEditingChanged?(true)
-                            }
-                            .onEnded { _ in
-                                onEditingChanged?(false)
-                            }
-                    )
+                // Thumb with expand highlight effect
+                ZStack {
+                    // Highlight ring
+                    if isThumbHovered || isThumbPressed || isDragging {
+                        Circle()
+                            .fill(settings.accentColor.opacity(0.18))
+                            .frame(width: thumbRadius * 2.8, height: thumbRadius * 2.8)
+                            .scaleEffect(isThumbPressed || isDragging ? 1.18 : 1.0)
+                            .animation(.interpolatingSpring(stiffness: 260, damping: 18), value: isThumbPressed || isDragging)
+                    }
+                    // Thumb
+                    Circle()
+                        .fill(settings.accentColor)
+                        .frame(width: thumbRadius * 2, height: thumbRadius * 2)
+                        .shadow(color: .black.opacity(0.10), radius: 1, x: 0, y: 1)
+                        .scaleEffect(
+                            isThumbPressed || isDragging ? 1.18 :
+                            isThumbHovered ? 1.09 : 1.0
+                        )
+                        .animation(.interpolatingSpring(stiffness: 260, damping: 18), value: isThumbPressed || isDragging)
+                        .animation(.interpolatingSpring(stiffness: 320, damping: 16), value: isThumbHovered)
+                }
+                .position(x: thumbX, y: 12)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { gesture in
+                            let x = min(max(0, gesture.location.x), width)
+                            let percent = x / width
+                            let rawValue = range.lowerBound + percent * (range.upperBound - range.lowerBound)
+                            let newValue = (rawValue / step).rounded() * step
+                            value = min(max(range.lowerBound, newValue), range.upperBound)
+                            onEditingChanged?(true)
+                            isThumbPressed = true
+                        }
+                        .onEnded { _ in
+                            onEditingChanged?(false)
+                            isThumbPressed = false
+                        }
+                )
+                .onHover { hovering in
+                    withAnimation(.interpolatingSpring(stiffness: 320, damping: 16)) {
+                        isThumbHovered = hovering
+                    }
+                }
             }
         }
         .frame(height: 24)

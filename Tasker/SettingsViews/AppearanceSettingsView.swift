@@ -80,8 +80,11 @@ struct AppearanceSettingsView: View {
     @State private var pendingFontSize: CGFloat = 13
     @State private var isEditingSlider = false
 
-    // Preset accent colors
-    let presetColors: [Color] = [.yellow, .blue, .green, .pink, .orange, .purple]
+    // Preset accent colors (first is the new default)
+    let presetColors: [Color] = [
+        Color(hex: "#6D72C3"), // Default accent color
+        .yellow, .blue, .green, .pink, .orange, .purple
+    ]
 
     // --- Dynamic sizing based on font size ---
     private var buttonDiameter: CGFloat { settings.fontSize * 2.1 }
@@ -110,7 +113,7 @@ struct AppearanceSettingsView: View {
                     )
                     .environmentObject(settings)
                     .frame(width: 160)
-                    .padding(.trailing, 12) // <-- Extra space between slider and label
+                    .padding(.trailing, 12) // Extra space between slider and label
 
                     Text("\(Int(pendingFontSize)) pt")
                         .font(.system(size: settings.fontSize * 0.85))
