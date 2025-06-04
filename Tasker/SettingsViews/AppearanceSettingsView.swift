@@ -12,7 +12,7 @@ extension Notification.Name {
     static let settingsFontSizeDidCommit = Notification.Name("settingsFontSizeDidCommit")
 }
 
-// Custom button style for accent color selection (unchanged)
+// Custom button style for accent color selection
 struct AccentColorButtonStyle: ButtonStyle {
     let isSelected: Bool
     let accentColor: Color
@@ -25,18 +25,21 @@ struct AccentColorButtonStyle: ButtonStyle {
         )
     }
 
+    // Inner view for button appearance and interaction
     private struct AccentColorButton: View {
         let configuration: Configuration
         let isSelected: Bool
         let accentColor: Color
         @State private var isHovered = false
 
+        // Scale effect for hover/press animation
         var scale: CGFloat {
             if configuration.isPressed { return 0.97 }
             else if isHovered { return 1.07 }
             else { return 1.0 }
         }
 
+        // Highlight color based on selection and interaction state
         var highlightColor: Color {
             if isSelected {
                 if configuration.isPressed { return accentColor.opacity(0.35) }
@@ -93,9 +96,9 @@ struct AppearanceSettingsView: View {
                     .font(.system(size: settings.fontSize, weight: .bold))
                 HStack {
                     // Slider for font size, only commits on drag end
-                    Slider(
+                    AccentSlider(
                         value: $pendingFontSize,
-                        in: 11...20,
+                        range: 11...20,
                         step: 1,
                         onEditingChanged: { editing in
                             isEditingSlider = editing
@@ -105,7 +108,10 @@ struct AppearanceSettingsView: View {
                             }
                         }
                     )
+                    .environmentObject(settings)
                     .frame(width: 160)
+                    .padding(.trailing, 12) // <-- Extra space between slider and label
+
                     Text("\(Int(pendingFontSize)) pt")
                         .font(.system(size: settings.fontSize * 0.85))
                         .foregroundColor(.secondary)
